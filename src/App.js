@@ -132,14 +132,8 @@ const videos = [
 
 function Logo() {
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#009B7D] text-white shadow-sm">
-        <HeartPulse size={22} />
-      </div>
-      <div className="leading-none">
-        <div className="text-xl font-black tracking-tight text-[#132033]">MedTreatIndia</div>
-        <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#009B7D]">Premium Healthcare</div>
-      </div>
+    <div className="flex items-center">
+      <img src="/logo.png" alt="MedTreat India" className="h-14 w-auto" />
     </div>
   );
 }
