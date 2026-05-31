@@ -118,14 +118,14 @@ const videos = [
     name: "David M.",
     country: "Nigeria",
     treatment: "Cardiac Bypass Surgery",
-    url: "https://youtu.be/r7cqFSfW3_c?si=H6-ejWMct5C7wSf1",
+    url: "https://www.youtube.com/embed/r7cqFSfW3_c",
     story: "Patient story placeholder for a complex cardiac journey and recovery support.",
   },
   {
     name: "Amina K.",
     country: "Oman",
     treatment: "Cancer Treatment",
-    url: "https://youtu.be/r7cqFSfW3_c?si=H6-ejWMct5C7wSf1",
+    url: "https://www.youtube.com/embed/r7cqFSfW3_c",
     story: "Video testimonial placeholder. Replace with real approved patient video.",
   },
 ];
