@@ -1419,28 +1419,32 @@ input[aria-invalid="true"] {
   :root { --container: min(100% - 28px, 1200px); }
   .brand { width: 175px; }
   .hero-controls {
-    top: 14px;
-    right: 14px;
-    left: 14px;
-    justify-content: flex-end;
+    position: relative;
+    top: auto;
+    right: auto;
+    left: auto;
+    width: fit-content;
+    max-width: calc(100% - 28px);
+    margin: 20px auto 0;
+    justify-content: center;
     gap: 6px;
     padding: 5px;
   }
   .hero-controls .language-widget {
-    max-width: calc(100vw - 136px);
+    max-width: 176px;
     padding: 0 9px;
   }
   .hero-controls .language-widget span { display: none; }
   .hero-controls .language-widget select {
-    width: 130px;
-    max-width: 130px;
+    width: 142px;
+    max-width: 142px;
     font-size: .8rem;
   }
   .hero-controls .theme-toggle {
     min-height: 40px;
     padding: 8px 11px 8px 8px;
   }
-  .hero-layout { padding: 52px 0; gap: 32px; }
+  .hero-layout { padding: 34px 0 52px; gap: 32px; }
   .hero-copy p:not(.eyebrow) { font-size: 1rem; }
   .journey-card { padding: 20px; }
   .form-row, .mini-card-grid, .treatment-directory, .steps-row, .story-options, .testimonial-grid, .security-grid, .footer-grid { grid-template-columns: 1fr; }
