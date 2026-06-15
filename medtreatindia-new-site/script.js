@@ -461,14 +461,16 @@
     const data = new FormData(form);
     const phoneCode = String(data.get("phoneCode") || callingCodeFor(data.get("country")) || "").trim();
     const localPhone = String(data.get("phone") || "").trim();
+    const phoneFull = [phoneCode, localPhone].filter(Boolean).join(" ");
     return {
       submittedAt: new Date().toISOString(),
       sourcePage: window.location.href,
       name: String(data.get("name") || "").trim(),
       country: String(data.get("country") || "").trim(),
       phoneCode: phoneCode,
-      phone: [phoneCode, localPhone].filter(Boolean).join(" "),
       localPhone: localPhone,
+      phoneFull: phoneFull,
+      phone: phoneFull,
       email: String(data.get("email") || "").trim(),
       treatment: String(data.get("treatment") || "").trim(),
       message: String(data.get("message") || "").trim(),
@@ -572,7 +574,11 @@
 
   function validateEmailInput(input) {
     const value = input.value.trim();
-    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
+    input.value = value;
+
+    const hasWhitespace = /\s/.test(value);
+    const emailPattern = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/;
+    const isValid = Boolean(value) && value.length <= 254 && !hasWhitespace && emailPattern.test(value);
     input.setCustomValidity(isValid ? "" : "Please enter a valid email address, for example name@example.com.");
     input.toggleAttribute("aria-invalid", Boolean(input.validationMessage));
     return input.validationMessage === "";
@@ -618,7 +624,11 @@
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         validateFormFields(form);
-        if (!form.reportValidity()) return;
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          setFormStatus(form, "Please correct the highlighted details before submitting.", "error");
+          return;
+        }
         const message = formMessage(form);
         const targetUrl = whatsappUrl(message);
         const whatsappWindow = window.open("about:blank", "_blank");

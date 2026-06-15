@@ -20,3 +20,22 @@ const googleSheetEndpoint = "";
 ```
 
 After the URL is added, every website form submission will add a new row to the `Responses` sheet.
+
+## After updating this file later
+
+If you change `google-sheet-apps-script.js`, paste the updated code into Apps Script again, then deploy a new web app version with access set to "Anyone". The website can send the latest phone fields only after the Apps Script deployment is updated.
+
+The current sheet columns are:
+
+- Submitted At
+- Name
+- Country
+- Phone Code
+- Local Phone
+- Full Phone / WhatsApp
+- Email
+- Treatment
+- Message
+- Budget
+- Preferred Date
+- Source Page

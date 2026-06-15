@@ -1,43 +1,88 @@
 const SHEET_NAME = "Responses";
+const RESPONSE_HEADERS = [
+  "Submitted At",
+  "Name",
+  "Country",
+  "Phone Code",
+  "Local Phone",
+  "Full Phone / WhatsApp",
+  "Email",
+  "Treatment",
+  "Message",
+  "Budget",
+  "Preferred Date",
+  "Source Page"
+];
 
 function doPost(e) {
   const sheet = getResponseSheet();
-  const data = JSON.parse(e.postData.contents || "{}");
+  const data = parsePayload(e);
+  const phoneCode = data.phoneCode || "";
+  const localPhone = data.localPhone || "";
+  const phoneFull = data.phoneFull || data.phone || [phoneCode, localPhone].filter(Boolean).join(" ");
 
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow([
-      "Submitted At",
-      "Name",
-      "Country",
-      "Phone / WhatsApp",
-      "Email",
-      "Treatment",
-      "Message",
-      "Budget",
-      "Preferred Date",
-      "Source Page"
-    ]);
-  }
+  ensureHeaders(sheet);
 
-  sheet.appendRow([
+  const row = [
     data.submittedAt || new Date().toISOString(),
     data.name || "",
     data.country || "",
-    data.phone || "",
+    asPlainText(phoneCode),
+    asPlainText(localPhone),
+    asPlainText(phoneFull),
     data.email || "",
     data.treatment || "",
     data.message || "",
     data.budget || "",
     data.date || "",
     data.sourcePage || ""
-  ]);
+  ];
+  const nextRow = sheet.getLastRow() + 1;
+
+  sheet.getRange(nextRow, 4, 1, 3).setNumberFormat("@");
+  sheet.getRange(nextRow, 1, 1, row.length).setValues([row]);
 
   return ContentService
     .createTextOutput(JSON.stringify({ ok: true }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+function parsePayload(e) {
+  const raw = e && e.postData && e.postData.contents ? e.postData.contents : "{}";
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    return {};
+  }
+}
+
 function getResponseSheet() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   return spreadsheet.getSheetByName(SHEET_NAME) || spreadsheet.insertSheet(SHEET_NAME);
+}
+
+function ensureHeaders(sheet) {
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(RESPONSE_HEADERS);
+    return;
+  }
+
+  const currentWidth = Math.max(sheet.getLastColumn(), RESPONSE_HEADERS.length);
+  const currentHeaders = sheet.getRange(1, 1, 1, currentWidth).getValues()[0];
+  let needsUpdate = currentWidth < RESPONSE_HEADERS.length;
+
+  RESPONSE_HEADERS.forEach(function (header, index) {
+    if (currentHeaders[index] !== header) {
+      currentHeaders[index] = header;
+      needsUpdate = true;
+    }
+  });
+
+  if (needsUpdate) {
+    sheet.getRange(1, 1, 1, RESPONSE_HEADERS.length).setValues([RESPONSE_HEADERS]);
+  }
+}
+
+function asPlainText(value) {
+  return String(value || "").trim();
 }
