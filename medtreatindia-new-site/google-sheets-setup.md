@@ -39,3 +39,5 @@ The current sheet columns are:
 - Budget
 - Preferred Date
 - Source Page
+
+If older test rows show `#ERROR` in the phone column, run the `repairLegacyPhoneErrors` function once inside Apps Script. That only repairs the old phone column values that Google Sheets treated as formulas.

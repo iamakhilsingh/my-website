@@ -470,7 +470,7 @@
       phoneCode: phoneCode,
       localPhone: localPhone,
       phoneFull: phoneFull,
-      phone: phoneFull,
+      phone: phoneFull ? "'" + phoneFull : "",
       email: String(data.get("email") || "").trim(),
       treatment: String(data.get("treatment") || "").trim(),
       message: String(data.get("message") || "").trim(),

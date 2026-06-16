@@ -84,5 +84,30 @@ function ensureHeaders(sheet) {
 }
 
 function asPlainText(value) {
-  return String(value || "").trim();
+  return String(value || "").trim().replace(/^'/, "");
+}
+
+function repairLegacyPhoneErrors() {
+  const sheet = getResponseSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const phoneRange = sheet.getRange(2, 4, lastRow - 1, 1);
+  const formulas = phoneRange.getFormulas();
+  const displayValues = phoneRange.getDisplayValues();
+  const currentValues = phoneRange.getValues();
+  const repairedValues = currentValues.map(function (row, index) {
+    const formula = formulas[index][0];
+    const displayValue = displayValues[index][0];
+    const currentValue = row[0];
+
+    if (displayValue === "#ERROR!" && formula) {
+      return [formula.replace(/^=/, "").trim()];
+    }
+
+    return [String(currentValue || displayValue || "").trim().replace(/^'/, "")];
+  });
+
+  phoneRange.setNumberFormat("@");
+  phoneRange.setValues(repairedValues);
 }

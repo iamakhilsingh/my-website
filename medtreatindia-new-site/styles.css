@@ -822,6 +822,228 @@ input[aria-invalid="true"] {
   color: #fff;
 }
 
+.value-strip-section { position: relative; }
+.value-strip-grid {
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 22px;
+}
+.value-strip-grid article {
+  position: relative;
+  overflow: hidden;
+}
+.value-strip-grid article::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--blue), var(--green), var(--gold));
+}
+.blog-preview-section {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(246,249,253,.92) 100%);
+}
+.blog-preview-card,
+.blog-card,
+.article-toc,
+.article-cta,
+.blog-article-body,
+.blog-feature-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+.blog-preview-card {
+  display: grid;
+  grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+  overflow: hidden;
+  background: #fff;
+}
+.blog-preview-media img {
+  width: 100%;
+  height: 100%;
+  min-height: 340px;
+  object-fit: cover;
+}
+.blog-preview-body {
+  padding: 34px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+}
+.blog-meta {
+  margin: 0;
+  color: var(--gold);
+  font-size: .82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.blog-preview-body h3,
+.blog-card h3 {
+  margin: 0;
+  font-size: clamp(1.7rem, 2.8vw, 2.3rem);
+  line-height: 1.12;
+}
+.blog-preview-body p:last-of-type,
+.blog-card p {
+  margin: 0;
+  color: var(--muted);
+}
+.blog-preview-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 26px;
+}
+.blog-card,
+.blog-feature-card {
+  overflow: hidden;
+  background: #fff;
+}
+.blog-card img,
+.blog-feature-card img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+.blog-card-body,
+.blog-feature-body {
+  padding: 24px;
+}
+.blog-card-body h3 {
+  font-size: 1.45rem;
+}
+.blog-list-note {
+  margin-top: 18px;
+  color: var(--muted);
+}
+.blog-article-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.article-toc {
+  position: sticky;
+  top: 98px;
+  padding: 22px 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f2f6fb 100%);
+}
+.article-toc h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+.article-toc a {
+  display: block;
+  margin: 10px 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+.article-toc a:hover {
+  color: var(--blue);
+}
+.blog-article-body {
+  overflow: hidden;
+  background: #fff;
+}
+.blog-article-hero {
+  position: relative;
+}
+.blog-article-hero img {
+  width: 100%;
+  height: 420px;
+  object-fit: cover;
+}
+.blog-article-hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 52%;
+  background: linear-gradient(180deg, transparent, rgba(5,11,28,.8));
+}
+.blog-article-hero-copy {
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  bottom: 28px;
+  z-index: 1;
+  color: #fff;
+}
+.blog-article-hero-copy h1 {
+  margin: 8px 0 10px;
+  max-width: 760px;
+  font-size: clamp(2.3rem, 4.2vw, 4rem);
+  line-height: 1.04;
+}
+.blog-article-hero-copy p {
+  max-width: 760px;
+  margin: 0;
+  color: rgba(255,255,255,.84);
+  font-size: 1.04rem;
+}
+.blog-article-content {
+  padding: 34px 34px 38px;
+}
+.blog-article-content p,
+.blog-article-content li {
+  color: #273247;
+  font-size: 1.02rem;
+}
+.blog-article-content h2 {
+  margin-top: 34px;
+  margin-bottom: 12px;
+  font-size: 1.8rem;
+}
+.blog-article-content ul {
+  padding-left: 22px;
+}
+.article-lead {
+  font-size: 1.12rem;
+  color: var(--muted);
+}
+.article-inline-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin-top: 18px;
+}
+.article-inline-links a {
+  color: var(--blue);
+  font-weight: 900;
+}
+.article-cta {
+  margin-top: 34px;
+  padding: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(47,99,199,.1), transparent 38%),
+    linear-gradient(135deg, #f8fbff 0%, #eef4fb 100%);
+}
+.article-cta h2 {
+  margin-top: 0;
+}
+.article-cta p {
+  margin-bottom: 18px;
+}
+.blog-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,.14);
+  font-size: .82rem;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
 .hospital-showcase {
   position: relative;
   max-width: 1180px;
@@ -1448,8 +1670,29 @@ input[aria-invalid="true"] {
   .hero-copy p:not(.eyebrow) { font-size: 1rem; }
   .journey-card { padding: 20px; }
   .form-row, .mini-card-grid, .treatment-directory, .steps-row, .story-options, .testimonial-grid, .security-grid, .footer-grid { grid-template-columns: 1fr; }
+  .value-strip-grid,
+  .blog-grid,
+  .blog-article-shell,
+  .blog-preview-card { grid-template-columns: 1fr; }
   .process-roadmap-section .section-head {
     margin-bottom: 34px;
+  }
+  .article-toc {
+    position: static;
+  }
+  .blog-preview-body,
+  .blog-card-body,
+  .blog-feature-body,
+  .blog-article-content {
+    padding: 22px;
+  }
+  .blog-article-hero img {
+    height: 280px;
+  }
+  .blog-article-hero-copy {
+    left: 22px;
+    right: 22px;
+    bottom: 20px;
   }
   .roadmap-steps {
     gap: 18px;
@@ -1597,7 +1840,13 @@ input[aria-invalid="true"] {
 :root[data-theme="dark"] .story-card,
 :root[data-theme="dark"] .security-card,
 :root[data-theme="dark"] .content-card,
-:root[data-theme="dark"] .hospital-slider article {
+:root[data-theme="dark"] .hospital-slider article,
+:root[data-theme="dark"] .blog-preview-card,
+:root[data-theme="dark"] .blog-card,
+:root[data-theme="dark"] .blog-feature-card,
+:root[data-theme="dark"] .article-toc,
+:root[data-theme="dark"] .article-cta,
+:root[data-theme="dark"] .blog-article-body {
   background: #101827;
   border-color: rgba(148,163,184,.2);
   box-shadow: var(--shadow);
@@ -1633,6 +1882,28 @@ input[aria-invalid="true"] {
 :root[data-theme="dark"] .feature-photo { background: #080f1d; }
 :root[data-theme="dark"] .section-soft,
 :root[data-theme="dark"] .page-hero { background: #0b1220; }
+:root[data-theme="dark"] .blog-preview-section {
+  background: linear-gradient(180deg, #09111f 0%, #0b1220 100%);
+}
+:root[data-theme="dark"] .article-toc {
+  background: linear-gradient(180deg, rgba(10,16,30,.96), rgba(16,24,39,.96));
+}
+:root[data-theme="dark"] .article-toc a,
+:root[data-theme="dark"] .article-lead,
+:root[data-theme="dark"] .blog-preview-body p:last-of-type,
+:root[data-theme="dark"] .blog-card p,
+:root[data-theme="dark"] .blog-list-note {
+  color: #93a4bb;
+}
+:root[data-theme="dark"] .blog-article-content p,
+:root[data-theme="dark"] .blog-article-content li {
+  color: #d8e2f0;
+}
+:root[data-theme="dark"] .article-cta {
+  background:
+    radial-gradient(circle at top left, rgba(47,99,199,.12), transparent 42%),
+    linear-gradient(135deg, rgba(10,16,30,.96) 0%, rgba(16,24,39,.96) 100%);
+}
 :root[data-theme="dark"] .process-roadmap-section {
   background:
     radial-gradient(circle at 18% 12%, rgba(112,162,255,.14), transparent 34%),
@@ -1770,7 +2041,13 @@ input[aria-invalid="true"] {
 :root[data-theme="light"] .story-card,
 :root[data-theme="light"] .security-card,
 :root[data-theme="light"] .content-card,
-:root[data-theme="light"] .hospital-slider article {
+:root[data-theme="light"] .hospital-slider article,
+:root[data-theme="light"] .blog-preview-card,
+:root[data-theme="light"] .blog-card,
+:root[data-theme="light"] .blog-feature-card,
+:root[data-theme="light"] .article-toc,
+:root[data-theme="light"] .article-cta,
+:root[data-theme="light"] .blog-article-body {
   background: #fff;
   border-color: var(--line);
   box-shadow: var(--shadow);
@@ -1817,6 +2094,9 @@ input[aria-invalid="true"] {
   color: #fff;
 }
 :root[data-theme="light"] .treatment-preview { background: linear-gradient(180deg, #fff 0%, #f7fafc 100%); }
+:root[data-theme="light"] .blog-preview-section {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
+}
 :root[data-theme="light"] .treatment-icon,
 :root[data-theme="light"] .steps-row span,
 :root[data-theme="light"] .pulse-icon {
