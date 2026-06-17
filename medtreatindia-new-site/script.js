@@ -953,7 +953,7 @@
 
     elements.forEach((element, index) => {
       element.setAttribute("data-zoom-reveal", "");
-      element.style.setProperty("--zoom-delay", Math.min(index % 6, 5) * 70 + "ms");
+      element.classList.add("zoom-delay-" + Math.min(index % 6, 5));
     });
 
     if (!("IntersectionObserver" in window)) {
