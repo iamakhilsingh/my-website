@@ -181,6 +181,35 @@ function sanitizePath(value) {
   return /^\/[A-Za-z0-9/_-]*$/.test(path) ? path : "/";
 }
 
+function normalizeLegacySourcePath(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "/";
+
+  if (/^\/[A-Za-z0-9/_-]*$/.test(raw)) {
+    return raw || "/";
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const parsed = new URL(raw);
+      return sanitizePath(String(parsed.pathname || "/").replace(/\.html$/, "") || "/");
+    } catch (error) {
+      return "/";
+    }
+  }
+
+  if (/^file:\/\//i.test(raw)) {
+    const cleaned = raw.split(/[?#]/)[0];
+    const filename = cleaned.split("/").filter(Boolean).pop() || "";
+    if (filename === "index.html") return "/";
+    if (/^[A-Za-z0-9_-]+\.html$/.test(filename)) {
+      return "/" + filename.replace(/\.html$/, "");
+    }
+  }
+
+  return "/";
+}
+
 function asSheetText(value) {
   const text = String(value || "").trim();
   if (!text) return "";
@@ -212,4 +241,21 @@ function repairLegacyPhoneErrors() {
 
   phoneRange.setNumberFormat("@");
   phoneRange.setValues(values);
+}
+
+function repairLegacySourcePages() {
+  const sheet = getResponseSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const sourceColumn = RESPONSE_HEADERS.indexOf("Source Page") + 1;
+  if (!sourceColumn) return;
+
+  const range = sheet.getRange(2, sourceColumn, lastRow - 1, 1);
+  const values = range.getDisplayValues().map(function (row) {
+    return [asSheetText(normalizeLegacySourcePath(row[0]))];
+  });
+
+  range.setNumberFormat("@");
+  range.setValues(values);
 }

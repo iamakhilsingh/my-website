@@ -435,23 +435,47 @@
     return [phoneCode, phone].filter(Boolean).join(" ");
   }
 
-  function safeSourcePage() {
-    const path = String(window.location.pathname || "/").trim();
-    if (!/^\/[A-Za-z0-9/_-]*(?:\.html)?$/.test(path)) {
+  function normalizeSourcePath(pathname) {
+    const path = String(pathname || "/")
+      .split(/[?#]/)[0]
+      .trim();
+
+    if (!path) return "/";
+
+    if (/^\/[A-Za-z0-9/_-]*(?:\.html)?$/.test(path)) {
+      if (path === "/index.html") return "/";
+      return path.replace(/\.html$/, "") || "/";
+    }
+
+    const filename = path.split("/").filter(Boolean).pop() || "";
+    if (!/^[A-Za-z0-9_-]+\.html$/.test(filename)) {
       return "/";
     }
 
-    if (path === "/index.html") return "/";
-    return path.replace(/\.html$/, "") || "/";
+    if (filename === "index.html") return "/";
+    return "/" + filename.replace(/\.html$/, "");
+  }
+
+  function safeSourcePage() {
+    try {
+      const currentUrl = new URL(window.location.href);
+      return normalizeSourcePath(currentUrl.pathname);
+    } catch (error) {
+      return normalizeSourcePath(window.location.pathname || "/");
+    }
   }
 
   function formMessage(form) {
     const data = new FormData(form);
+    const phone = normalizedPhone(form);
+    const email = String(data.get("email") || "").trim();
     const lines = [
       "Hello MedTreat India, I submitted an enquiry on your website and would like to continue on WhatsApp.",
       "",
       "Name: " + (data.get("name") || ""),
       "Country: " + (data.get("country") || ""),
+      "Phone / WhatsApp: " + phone,
+      "Email: " + email,
       "Treatment need: " + (data.get("treatment") || "")
     ];
 
@@ -471,6 +495,7 @@
       phoneCode: phoneCode,
       localPhone: localPhone,
       phoneFull: phoneFull,
+      phone: phoneFull,
       email: String(data.get("email") || "").trim(),
       treatment: String(data.get("treatment") || "").trim(),
       message: String(data.get("message") || "").trim(),
