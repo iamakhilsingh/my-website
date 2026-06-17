@@ -1,6 +1,9 @@
 (function () {
   "use strict";
 
+  let leadPopupElement = null;
+  let leadPopupTimer = null;
+
   const countryNames = [
     "Afghanistan",
     "Albania",
@@ -446,12 +449,23 @@
 
     if (!path) return "/";
 
+    const filename = path.split("/").filter(Boolean).pop() || "";
+    const isFileSystemPath = /^\/(?:Users|System|private|Volumes)\//.test(path) || /^[A-Za-z]:[\\/]/.test(path);
+
+    if (isFileSystemPath) {
+      if (!filename) return "/";
+      if (filename === "index.html") return "/";
+      if (/^[A-Za-z0-9._-]+\.html$/.test(filename)) {
+        return "/" + filename.replace(/\.html$/, "");
+      }
+      return "/";
+    }
+
     if (/^\/[A-Za-z0-9/_-]*(?:\.html)?$/.test(path)) {
       if (path === "/index.html") return "/";
       return path.replace(/\.html$/, "") || "/";
     }
 
-    const filename = path.split("/").filter(Boolean).pop() || "";
     if (!/^[A-Za-z0-9_-]+\.html$/.test(filename)) {
       return "/";
     }
@@ -471,6 +485,7 @@
 
   function captureSubmissionData(form) {
     const data = new FormData(form);
+    const leadType = formValue(data, ["leadType"]);
     const country = formValue(data, ["country"]);
     const phoneInput = formValue(data, [
       "phone",
@@ -488,6 +503,7 @@
     return {
       submittedAt: new Date().toISOString(),
       sourcePage,
+      leadType,
       name: formValue(data, ["name"]),
       country,
       phoneCode,
@@ -509,18 +525,17 @@
     const lines = [
       "Hello MedTreat India, I submitted an enquiry on your website and would like to continue on WhatsApp.",
       "",
-      "Name: " + submission.name,
-      "Country: " + submission.country,
-      "Phone / WhatsApp: " + submission.phoneFull,
-      "Email: " + submission.email,
-      "Treatment need: " + submission.treatment
+      "Name: " + submission.name
     ];
+
+    if (submission.country) lines.push("Country: " + submission.country);
+    lines.push("Phone / WhatsApp: " + submission.phoneFull);
+    if (submission.email) lines.push("Email: " + submission.email);
+    lines.push("Treatment need: " + submission.treatment);
 
     if (submission.message) lines.push("Message: " + submission.message);
     if (submission.budget) lines.push("Budget: " + submission.budget);
     if (submission.date) lines.push("Preferred Date: " + submission.date);
-    if (submission.sourcePage) lines.push("Source Page: " + submission.sourcePage);
-
     return lines.join("\n");
   }
 
@@ -528,6 +543,7 @@
     return {
       submittedAt: submission.submittedAt,
       sourcePage: submission.sourcePage,
+      leadType: submission.leadType,
       name: submission.name,
       country: submission.country,
       phoneCode: submission.phoneCode,
@@ -698,6 +714,89 @@
     if (consentInput) validateConsentInput(consentInput);
   }
 
+  function closeLeadPopup(persist = false) {
+    if (!leadPopupElement) return;
+    leadPopupElement.classList.remove("is-open");
+    leadPopupElement.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("lead-popup-open");
+    if (persist) {
+      window.sessionStorage.setItem("medtreatindia-popup-dismissed", "1");
+    }
+    window.setTimeout(() => {
+      if (leadPopupElement) leadPopupElement.hidden = true;
+    }, 240);
+  }
+
+  function openLeadPopup() {
+    if (!leadPopupElement || leadPopupElement.hidden === false) return;
+    leadPopupElement.hidden = false;
+    leadPopupElement.setAttribute("aria-hidden", "false");
+    document.body.classList.add("lead-popup-open");
+    window.requestAnimationFrame(() => {
+      leadPopupElement?.classList.add("is-open");
+    });
+
+    const focusTarget = leadPopupElement.querySelector("input:not([type='hidden']), select, textarea, button");
+    if (focusTarget) {
+      window.setTimeout(() => focusTarget.focus({ preventScroll: true }), 40);
+    }
+  }
+
+  function setupLeadPopup() {
+    if (normalizeSourcePath(window.location.pathname || "/") !== "/") return;
+    if (window.sessionStorage.getItem("medtreatindia-popup-dismissed") === "1") return;
+
+    const popup = document.createElement("section");
+    popup.className = "lead-popup";
+    popup.hidden = true;
+    popup.setAttribute("aria-hidden", "true");
+    popup.innerHTML = [
+      '<div class="lead-popup__backdrop" data-lead-popup-close></div>',
+      '<div class="lead-popup__panel" role="dialog" aria-modal="true" aria-labelledby="lead-popup-title">',
+      '  <button class="lead-popup__close" type="button" aria-label="Close popup" data-lead-popup-close>&times;</button>',
+      '  <p class="lead-popup__eyebrow">Quick enquiry</p>',
+      '  <h2 id="lead-popup-title">Let us help you</h2>',
+      '  <p class="lead-popup__copy">Tell us your name, phone number, treatment need and budget. We&rsquo;ll guide you from there.</p>',
+      '  <form class="consult-form lead-popup__form" data-consult-form data-form-variant="popup">',
+      '    <input name="leadType" type="hidden" value="popup" />',
+      '    <input name="country" type="hidden" value="" />',
+      '    <label>Full name <input name="name" autocomplete="name" maxlength="120" required /></label>',
+      '    <label>Phone number <input name="phone" autocomplete="tel-national" required /></label>',
+      '    <label>Treatment requirement <select name="treatment" required><option value="">Select a treatment</option><option>Cardiology / Heart Surgery</option><option>Orthopedics</option><option>Oncology</option><option>IVF & Fertility</option><option>Transplant Review</option><option>Other</option></select></label>',
+      '    <label>Budget <input name="budget" inputmode="text" maxlength="80" placeholder="e.g. 7000 USD" /></label>',
+      '    <label class="consent-check"><input name="consent" type="checkbox" required /> <span>I agree to the <a class="text-link" href="privacy-policy.html">Privacy Policy</a> and consent to MedTreat India contacting me about my enquiry.</span></label>',
+      '    <p class="form-warning">Please do not include medical reports, passport details, payment information or highly sensitive medical information in this enquiry form. Our patient coordinator will provide a safer method for sharing documents if required.</p>',
+      '    <input class="form-honeypot" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />',
+      '    <input name="startedAt" type="hidden" value="" />',
+      '    <button class="btn btn-primary btn-full" type="submit">Get a Free quote</button>',
+      "  </form>",
+      "</div>"
+    ].join("");
+
+    popup.addEventListener("click", (event) => {
+      if (event.target.matches("[data-lead-popup-close]")) {
+        closeLeadPopup(true);
+      }
+    });
+
+    document.body.appendChild(popup);
+    leadPopupElement = popup;
+
+    setupFormValidation(popup.querySelector("[data-consult-form]"));
+
+    leadPopupTimer = window.setTimeout(() => {
+      if (!window.sessionStorage.getItem("medtreatindia-popup-dismissed")) {
+        openLeadPopup();
+      }
+    }, 3000);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && leadPopupElement && leadPopupElement.classList.contains("is-open")) {
+        closeLeadPopup(true);
+      }
+    });
+  }
+
   function setupFormValidation(form) {
     ensurePhoneCodeField(form);
     ensureSecurityFields(form);
@@ -789,9 +888,15 @@
             form.dataset.lastSubmittedAt = String(Date.now());
             form.reset();
             setFormStatus(form, "Thank you. Your enquiry was submitted for processing. Opening WhatsApp...", "success");
+            if (form.closest("[data-form-variant='popup']")) {
+              closeLeadPopup(true);
+            }
             openPreparedWhatsApp(targetUrl, whatsappWindow);
           } catch (error) {
             if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close();
+            if (form.closest("[data-form-variant='popup']")) {
+              closeLeadPopup(false);
+            }
             setFormStatus(form, "The form could not save right now. Please try again or use the WhatsApp button.", "error");
           } finally {
             if (button) button.disabled = false;
@@ -800,6 +905,9 @@
           return;
         }
 
+        if (form.closest("[data-form-variant='popup']")) {
+          closeLeadPopup(true);
+        }
         setFormStatus(form, "Google Sheet connection is not active yet. Opening WhatsApp instead.", "info");
         openPreparedWhatsApp(targetUrl, whatsappWindow);
         if (button) button.disabled = false;
@@ -1084,6 +1192,7 @@
 
   setupThemeToggle();
   populateCountries();
+  setupLeadPopup();
   setupForms();
   setupNavigation();
   setupWhatsAppLinks();

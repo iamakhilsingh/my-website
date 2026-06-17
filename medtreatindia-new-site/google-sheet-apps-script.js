@@ -98,6 +98,8 @@ function validatePayload(data) {
   const submittedAt = sanitizeText(pickField(data, ["submittedAt"]), 64);
   const startedAtRaw = sanitizeText(pickField(data, ["startedAt"]), 64);
   const startedAt = Number(startedAtRaw);
+  const leadType = sanitizeText(pickField(data, ["leadType"]), 40);
+  const isQuickLead = leadType === "popup";
   const name = sanitizeText(pickField(data, ["name"]), 120);
   const country = sanitizeText(pickField(data, ["country"]), 80);
   const phoneCode = sanitizeText(pickField(data, ["phoneCode"]), 8);
@@ -129,18 +131,20 @@ function validatePayload(data) {
   if (!startedAt || !isFinite(startedAt) || Date.now() - startedAt < MIN_FORM_AGE_MS) throw new Error("Form completed too quickly");
   if (!consent) throw new Error("Consent not given");
   if (!name || name.length < 2) throw new Error("Invalid name");
-  if (!country) throw new Error("Invalid country");
   if (!phoneFull || !/[0-9]/.test(phoneFull)) throw new Error("Invalid phone");
   if (phoneValue && !/^[0-9\s()+\-]+$/.test(phoneValue)) throw new Error("Invalid phone");
   if (phoneCode && !/^\+[0-9]{1,4}$/.test(phoneCode)) throw new Error("Invalid phone code");
   if (localPhone && !/^[0-9+\s()+\-]{4,30}$/.test(localPhone)) throw new Error("Invalid local phone");
-  if (!isValidEmail(email)) throw new Error("Invalid email");
+  if (!country && !isQuickLead) throw new Error("Invalid country");
+  if (!email && !isQuickLead) throw new Error("Invalid email");
+  if (email && !isValidEmail(email)) throw new Error("Invalid email");
   if (!ALLOWED_TREATMENTS[treatment]) throw new Error("Invalid treatment");
   if (message && message.length > 1000) throw new Error("Message too long");
 
   return {
     submittedAt: asSheetText(submittedAt),
     startedAt: startedAt,
+    leadType: asSheetText(leadType),
     name: asSheetText(name),
     country: asSheetText(country),
     phoneCode: asSheetText(phoneCode),
@@ -211,8 +215,7 @@ function sanitizeText(value, maxLength) {
 }
 
 function sanitizePath(value) {
-  const path = sanitizeText(value, 120);
-  return /^\/[A-Za-z0-9/_-]*$/.test(path) ? path : "/";
+  return normalizePathValue(value);
 }
 
 function pickField(data, keys) {
@@ -229,29 +232,51 @@ function pickField(data, keys) {
 }
 
 function normalizeLegacySourcePath(value) {
+  return normalizePathValue(value);
+}
+
+function normalizePathValue(value) {
   const raw = String(value || "").trim();
   if (!raw) return "/";
 
-  if (/^\/[A-Za-z0-9/_-]*$/.test(raw)) {
-    return raw || "/";
+  const stripped = raw.split(/[?#]/)[0].trim();
+  const filename = stripped.split("/").filter(Boolean).pop() || "";
+  const isFileSystemPath = /^\/(?:Users|System|private|Volumes)\//.test(stripped) || /^[A-Za-z]:[\\/]/.test(stripped);
+
+  if (isFileSystemPath) {
+    if (!filename || filename === "index.html") return "/";
+    if (/^[A-Za-z0-9._-]+\.html$/.test(filename)) {
+      return "/" + filename.replace(/\.html$/, "");
+    }
+    return "/";
   }
 
-  if (/^https?:\/\//i.test(raw)) {
+  if (/^file:\/\//i.test(stripped)) {
     try {
-      const parsed = new URL(raw);
-      return sanitizePath(String(parsed.pathname || "/").replace(/\.html$/, "") || "/");
+      const parsed = new URL(stripped);
+      return normalizePathValue(parsed.pathname || "/");
     } catch (error) {
       return "/";
     }
   }
 
-  if (/^file:\/\//i.test(raw)) {
-    const cleaned = raw.split(/[?#]/)[0];
-    const filename = cleaned.split("/").filter(Boolean).pop() || "";
-    if (filename === "index.html") return "/";
-    if (/^[A-Za-z0-9_-]+\.html$/.test(filename)) {
-      return "/" + filename.replace(/\.html$/, "");
+  if (/^https?:\/\//i.test(stripped)) {
+    try {
+      const parsed = new URL(stripped);
+      return normalizePathValue(parsed.pathname || "/");
+    } catch (error) {
+      return "/";
     }
+  }
+
+  if (/^\/[A-Za-z0-9/_-]*(?:\.html)?$/.test(stripped)) {
+    if (stripped === "/index.html") return "/";
+    return stripped.replace(/\.html$/, "") || "/";
+  }
+
+  if (filename === "index.html") return "/";
+  if (/^[A-Za-z0-9._-]+\.html$/.test(filename)) {
+    return "/" + filename.replace(/\.html$/, "");
   }
 
   return "/";
@@ -279,9 +304,12 @@ function repairLegacyPhoneErrors() {
   if (lastRow < 2) return;
 
   const phoneRange = sheet.getRange(2, 4, lastRow - 1, 1);
-  const values = phoneRange.getDisplayValues().map(function (row) {
-    const cleaned = String(row[0] || "").replace(/^=/, "").trim();
-    return [asSheetText(cleaned)];
+  const formulas = phoneRange.getFormulas();
+  const values = phoneRange.getDisplayValues().map(function (row, index) {
+    const display = String(row[0] || "").trim();
+    const formula = String(formulas[index][0] || "").trim();
+    const recovered = recoverPhoneText(display, formula);
+    return [asSheetText(recovered)];
   });
 
   phoneRange.setNumberFormat("@");
@@ -303,4 +331,23 @@ function repairLegacySourcePages() {
 
   range.setNumberFormat("@");
   range.setValues(values);
+}
+
+function recoverPhoneText(displayValue, formulaValue) {
+  const display = String(displayValue || "").trim();
+  if (display && display !== "#ERROR!") {
+    return display;
+  }
+
+  const formula = String(formulaValue || "").trim();
+  if (!formula) {
+    return display.replace(/^#ERROR!$/, "");
+  }
+
+  const cleaned = formula.replace(/^=/, "").trim();
+  if (cleaned) {
+    return cleaned;
+  }
+
+  return display.replace(/^#ERROR!$/, "");
 }
