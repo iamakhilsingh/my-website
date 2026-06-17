@@ -428,11 +428,15 @@
     return countryCallingCodes[country] || "";
   }
 
-  function normalizedPhone(form) {
-    const data = new FormData(form);
-    const phoneCode = String(data.get("phoneCode") || callingCodeFor(data.get("country")) || "").trim();
-    const phone = String(data.get("phone") || "").trim();
-    return [phoneCode, phone].filter(Boolean).join(" ");
+  function formValue(data, keys) {
+    for (const key of keys) {
+      const value = data.get(key);
+      if (value !== null && value !== undefined) {
+        const text = String(value).trim();
+        if (text) return text;
+      }
+    }
+    return "";
   }
 
   function normalizeSourcePath(pathname) {
@@ -465,45 +469,79 @@
     }
   }
 
-  function formMessage(form) {
+  function captureSubmissionData(form) {
     const data = new FormData(form);
-    const phone = normalizedPhone(form);
-    const email = String(data.get("email") || "").trim();
+    const country = formValue(data, ["country"]);
+    const phoneInput = formValue(data, [
+      "phone",
+      "phoneNumber",
+      "mobile",
+      "whatsapp",
+      "whatsappNumber",
+      "contactNumber",
+      "phone_whatsapp"
+    ]);
+    const phoneCode = formValue(data, ["phoneCode"]) || callingCodeFor(country) || "";
+    const phoneFull = phoneInput.startsWith("+") ? phoneInput : [phoneCode, phoneInput].filter(Boolean).join(" ");
+    const sourcePage = safeSourcePage();
+
+    return {
+      submittedAt: new Date().toISOString(),
+      sourcePage,
+      name: formValue(data, ["name"]),
+      country,
+      phoneCode,
+      phone: phoneFull,
+      localPhone: phoneInput,
+      phoneFull,
+      email: formValue(data, ["email"]),
+      treatment: formValue(data, ["treatment"]),
+      message: formValue(data, ["message"]),
+      budget: formValue(data, ["budget"]),
+      date: formValue(data, ["date"]),
+      consent: formValue(data, ["consent"]),
+      website: formValue(data, ["website"]),
+      startedAt: formValue(data, ["startedAt"])
+    };
+  }
+
+  function formMessage(submission) {
     const lines = [
       "Hello MedTreat India, I submitted an enquiry on your website and would like to continue on WhatsApp.",
       "",
-      "Name: " + (data.get("name") || ""),
-      "Country: " + (data.get("country") || ""),
-      "Phone / WhatsApp: " + phone,
-      "Email: " + email,
-      "Treatment need: " + (data.get("treatment") || "")
+      "Name: " + submission.name,
+      "Country: " + submission.country,
+      "Phone / WhatsApp: " + submission.phoneFull,
+      "Email: " + submission.email,
+      "Treatment need: " + submission.treatment
     ];
+
+    if (submission.message) lines.push("Message: " + submission.message);
+    if (submission.budget) lines.push("Budget: " + submission.budget);
+    if (submission.date) lines.push("Preferred Date: " + submission.date);
+    if (submission.sourcePage) lines.push("Source Page: " + submission.sourcePage);
 
     return lines.join("\n");
   }
 
-  function formPayload(form) {
-    const data = new FormData(form);
-    const phoneCode = String(data.get("phoneCode") || callingCodeFor(data.get("country")) || "").trim();
-    const localPhone = String(data.get("phone") || "").trim();
-    const phoneFull = [phoneCode, localPhone].filter(Boolean).join(" ");
+  function formPayload(submission) {
     return {
-      submittedAt: new Date().toISOString(),
-      sourcePage: safeSourcePage(),
-      name: String(data.get("name") || "").trim(),
-      country: String(data.get("country") || "").trim(),
-      phoneCode: phoneCode,
-      localPhone: localPhone,
-      phoneFull: phoneFull,
-      phone: phoneFull,
-      email: String(data.get("email") || "").trim(),
-      treatment: String(data.get("treatment") || "").trim(),
-      message: String(data.get("message") || "").trim(),
-      budget: String(data.get("budget") || "").trim(),
-      date: String(data.get("date") || "").trim(),
-      consent: String(data.get("consent") || "").trim(),
-      website: String(data.get("website") || "").trim(),
-      startedAt: String(data.get("startedAt") || "").trim()
+      submittedAt: submission.submittedAt,
+      sourcePage: submission.sourcePage,
+      name: submission.name,
+      country: submission.country,
+      phoneCode: submission.phoneCode,
+      localPhone: submission.localPhone || submission.phone,
+      phoneFull: submission.phoneFull,
+      phone: submission.phone,
+      email: submission.email,
+      treatment: submission.treatment,
+      message: submission.message,
+      budget: submission.budget,
+      date: submission.date,
+      consent: submission.consent,
+      website: submission.website,
+      startedAt: submission.startedAt
     };
   }
 
@@ -525,7 +563,7 @@
     status.dataset.status = type || "info";
   }
 
-  function submitToGoogleSheet(form) {
+  function submitToGoogleSheet(submission) {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 8000);
     return fetch(googleSheetEndpoint, {
@@ -538,7 +576,7 @@
       headers: {
         "Content-Type": "text/plain;charset=utf-8"
       },
-      body: JSON.stringify(formPayload(form))
+      body: JSON.stringify(formPayload(submission))
     }).finally(() => window.clearTimeout(timeout));
   }
 
@@ -555,11 +593,11 @@
     const phoneInput = form.querySelector("input[name='phone']");
     if (!phoneInput) return;
 
-    phoneInput.setAttribute("inputmode", "numeric");
-    phoneInput.setAttribute("pattern", "[0-9]{6,15}");
-    phoneInput.setAttribute("maxlength", "15");
+    phoneInput.setAttribute("inputmode", "tel");
+    phoneInput.setAttribute("pattern", "[0-9()+\\-\\s]{6,24}");
+    phoneInput.setAttribute("maxlength", "24");
     phoneInput.setAttribute("placeholder", "Phone number");
-    phoneInput.setAttribute("title", "Use digits only. Do not add spaces, letters, + sign, or symbols.");
+    phoneInput.setAttribute("title", "Use a phone number with digits and optional spaces, hyphens or parentheses. Do not add letters.");
 
     let hiddenCode = form.querySelector("input[name='phoneCode']");
     if (!hiddenCode) {
@@ -620,10 +658,10 @@
     const value = input.value.trim();
     if (!value) {
       input.setCustomValidity("Please enter your phone or WhatsApp number.");
-    } else if (!/^[0-9]+$/.test(value)) {
-      input.setCustomValidity("Phone number can use digits only. Please remove letters, spaces, + sign, or symbols.");
-    } else if (value.length < 6 || value.length > 15) {
-      input.setCustomValidity("Please enter a valid phone number with 6 to 15 digits.");
+    } else if (!/^[0-9()+\-\s]+$/.test(value)) {
+      input.setCustomValidity("Phone number can use digits, spaces, hyphens, parentheses and an optional + sign. Please remove letters or symbols.");
+    } else if ((value.match(/[0-9]/g) || []).length < 6) {
+      input.setCustomValidity("Please enter a valid phone number with at least 6 digits.");
     } else {
       input.setCustomValidity("");
     }
@@ -735,7 +773,8 @@
           return;
         }
 
-        const message = formMessage(form);
+        const submission = captureSubmissionData(form);
+        const message = formMessage(submission);
         const targetUrl = whatsappUrl(message);
         const whatsappWindow = window.open("about:blank", "_blank");
         if (whatsappWindow) whatsappWindow.opener = null;
@@ -746,7 +785,7 @@
 
         if (googleSheetReady()) {
           try {
-            await submitToGoogleSheet(form);
+            await submitToGoogleSheet(submission);
             form.dataset.lastSubmittedAt = String(Date.now());
             form.reset();
             setFormStatus(form, "Thank you. Your enquiry was submitted for processing. Opening WhatsApp...", "success");

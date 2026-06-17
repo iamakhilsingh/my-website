@@ -13,13 +13,10 @@ const RESPONSE_HEADERS = [
   "Submitted At",
   "Name",
   "Country",
-  "Phone Code",
-  "Local Phone",
-  "Full Phone / WhatsApp",
+  "Phone / WhatsApp",
   "Email",
   "Treatment",
   "Message",
-  "Consent",
   "Budget",
   "Preferred Date",
   "Source Page"
@@ -33,22 +30,11 @@ function doPost(e) {
 
     const sheet = getResponseSheet();
     ensureHeaders(sheet);
-
-    const row = [
-      data.submittedAt,
-      data.name,
-      data.country,
-      data.phoneCode,
-      data.localPhone,
-      data.phoneFull,
-      data.email,
-      data.treatment,
-      data.message,
-      data.consent ? "Yes" : "No",
-      data.budget,
-      data.date,
-      data.sourcePage
-    ];
+    const headers = sheet.getRange(1, 1, 1, RESPONSE_HEADERS.length).getValues()[0];
+    const rowMap = buildRowMap(data);
+    const row = headers.map(function (header) {
+      return rowMap[header] || "";
+    });
 
     const lock = LockService.getScriptLock();
     lock.waitLock(5000);
@@ -67,39 +53,87 @@ function doPost(e) {
 }
 
 function parsePayload(e) {
-  const raw = e && e.postData && e.postData.contents ? e.postData.contents : "{}";
-  try {
-    return JSON.parse(raw);
-  } catch (error) {
-    return {};
+  const body = e && e.postData ? String(e.postData.contents || "") : "";
+  const contentType = e && e.postData ? String(e.postData.type || "").toLowerCase() : "";
+  const params = e && e.parameter ? e.parameter : {};
+
+  let parsed = {};
+
+  if (body) {
+    if (contentType.indexOf("application/json") !== -1 || body.trim().charAt(0) === "{") {
+      try {
+        parsed = JSON.parse(body);
+      } catch (error) {
+        parsed = {};
+      }
+    } else if (contentType.indexOf("application/x-www-form-urlencoded") !== -1 || body.indexOf("=") !== -1) {
+      parsed = Object.fromEntries(body.split("&").map(function (pair) {
+        const parts = pair.split("=");
+        const key = decodeURIComponent(parts[0] || "");
+        const value = decodeURIComponent((parts[1] || "").replace(/\+/g, " "));
+        return [key, value];
+      }));
+    }
   }
+
+  return Object.assign({}, params, parsed);
+}
+
+function buildRowMap(data) {
+  return {
+    "Submitted At": data.submittedAt,
+    "Name": data.name,
+    "Country": data.country,
+    "Phone / WhatsApp": data.phoneFull || data.phone,
+    "Email": data.email,
+    "Treatment": data.treatment,
+    "Message": data.message,
+    "Budget": data.budget,
+    "Preferred Date": data.date,
+    "Source Page": data.sourcePage
+  };
 }
 
 function validatePayload(data) {
-  const submittedAt = sanitizeText(data.submittedAt, 64);
-  const startedAtRaw = sanitizeText(data.startedAt, 64);
+  const submittedAt = sanitizeText(pickField(data, ["submittedAt"]), 64);
+  const startedAtRaw = sanitizeText(pickField(data, ["startedAt"]), 64);
   const startedAt = Number(startedAtRaw);
-  const name = sanitizeText(data.name, 120);
-  const country = sanitizeText(data.country, 80);
-  const phoneCode = sanitizeText(data.phoneCode, 8);
-  const localPhone = sanitizeText(data.localPhone, 15);
-  const phoneFull = sanitizeText([phoneCode, localPhone].filter(Boolean).join(" "), 24);
-  const email = sanitizeText(data.email, 254).toLowerCase();
-  const treatment = sanitizeText(data.treatment, 80);
-  const message = sanitizeText(data.message, 1000);
-  const budget = sanitizeText(data.budget, 80);
-  const date = sanitizeText(data.date, 80);
-  const sourcePage = sanitizePath(data.sourcePage);
-  const consent = String(data.consent || "").toLowerCase() === "true" || String(data.consent || "").toLowerCase() === "on";
-  const website = sanitizeText(data.website, 120);
+  const name = sanitizeText(pickField(data, ["name"]), 120);
+  const country = sanitizeText(pickField(data, ["country"]), 80);
+  const phoneCode = sanitizeText(pickField(data, ["phoneCode"]), 8);
+  const phoneValue = pickField(data, [
+    "phone",
+    "phoneNumber",
+    "mobile",
+    "whatsapp",
+    "whatsappNumber",
+    "contactNumber",
+    "phone_whatsapp"
+  ]);
+  const localPhone = sanitizeText(pickField(data, ["localPhone"]) || phoneValue.replace(/^\+?[0-9]{1,4}[\s-]*/, ""), 30);
+  const phoneFull = sanitizeText(
+    phoneValue || [phoneCode, localPhone].filter(Boolean).join(" "),
+    40
+  );
+  const email = sanitizeText(pickField(data, ["email"]), 254).toLowerCase();
+  const treatment = sanitizeText(pickField(data, ["treatment"]), 80);
+  const message = sanitizeText(pickField(data, ["message"]), 1000);
+  const budget = sanitizeText(pickField(data, ["budget"]), 80);
+  const date = sanitizeText(pickField(data, ["date"]), 80);
+  const sourcePage = sanitizePath(pickField(data, ["sourcePage"]));
+  const website = sanitizeText(pickField(data, ["website"]), 120);
+  const consentValue = String(pickField(data, ["consent"]) || "").toLowerCase();
+  const consent = consentValue === "true" || consentValue === "on";
 
   if (!submittedAt) throw new Error("Missing submission timestamp");
   if (!startedAt || !isFinite(startedAt) || Date.now() - startedAt < MIN_FORM_AGE_MS) throw new Error("Form completed too quickly");
   if (!consent) throw new Error("Consent not given");
   if (!name || name.length < 2) throw new Error("Invalid name");
   if (!country) throw new Error("Invalid country");
-  if (!/^\+[0-9]{1,4}$/.test(phoneCode)) throw new Error("Invalid phone code");
-  if (!/^[0-9]{6,15}$/.test(localPhone)) throw new Error("Invalid local phone");
+  if (!phoneFull || !/[0-9]/.test(phoneFull)) throw new Error("Invalid phone");
+  if (phoneValue && !/^[0-9\s()+\-]+$/.test(phoneValue)) throw new Error("Invalid phone");
+  if (phoneCode && !/^\+[0-9]{1,4}$/.test(phoneCode)) throw new Error("Invalid phone code");
+  if (localPhone && !/^[0-9+\s()+\-]{4,30}$/.test(localPhone)) throw new Error("Invalid local phone");
   if (!isValidEmail(email)) throw new Error("Invalid email");
   if (!ALLOWED_TREATMENTS[treatment]) throw new Error("Invalid treatment");
   if (message && message.length > 1000) throw new Error("Message too long");
@@ -181,6 +215,19 @@ function sanitizePath(value) {
   return /^\/[A-Za-z0-9/_-]*$/.test(path) ? path : "/";
 }
 
+function pickField(data, keys) {
+  for (var i = 0; i < keys.length; i += 1) {
+    var key = keys[i];
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      var value = data[key];
+      if (value !== null && value !== undefined && String(value).trim() !== "") {
+        return String(value).trim();
+      }
+    }
+  }
+  return "";
+}
+
 function normalizeLegacySourcePath(value) {
   const raw = String(value || "").trim();
   if (!raw) return "/";
@@ -231,12 +278,10 @@ function repairLegacyPhoneErrors() {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
 
-  const phoneRange = sheet.getRange(2, 4, lastRow - 1, 3);
+  const phoneRange = sheet.getRange(2, 4, lastRow - 1, 1);
   const values = phoneRange.getDisplayValues().map(function (row) {
-    return row.map(function (cell) {
-      const cleaned = String(cell || "").replace(/^=/, "").trim();
-      return asSheetText(cleaned);
-    });
+    const cleaned = String(row[0] || "").replace(/^=/, "").trim();
+    return [asSheetText(cleaned)];
   });
 
   phoneRange.setNumberFormat("@");
