@@ -404,6 +404,8 @@
   const defaultMessage =
     "Hello MedTreat India, I would like guidance for treatment options in India.";
   const googleSheetEndpoint = "https://script.google.com/macros/s/AKfycbzGC-vCT-8dA3CzxhRDYMbEfZSSZwQB-ezj-3OleiSdVCFXSoGdGtU0En8waN4DTPEJLA/exec";
+  const submissionCooldownMs = 20000;
+  const minimumCompletionMs = 2500;
 
   function whatsappUrl(message) {
     return "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message || defaultMessage);
@@ -433,26 +435,25 @@
     return [phoneCode, phone].filter(Boolean).join(" ");
   }
 
+  function safeSourcePage() {
+    const path = String(window.location.pathname || "/").trim();
+    if (!/^\/[A-Za-z0-9/_-]*(?:\.html)?$/.test(path)) {
+      return "/";
+    }
+
+    if (path === "/index.html") return "/";
+    return path.replace(/\.html$/, "") || "/";
+  }
+
   function formMessage(form) {
     const data = new FormData(form);
     const lines = [
-      "Hello MedTreat India, I would like guidance for treatment options in India.",
+      "Hello MedTreat India, I submitted an enquiry on your website and would like to continue on WhatsApp.",
       "",
       "Name: " + (data.get("name") || ""),
       "Country: " + (data.get("country") || ""),
-      "Patient contact: " + normalizedPhone(form),
-      "Email: " + (data.get("email") || ""),
-      "Treatment need: " + (data.get("treatment") || ""),
-      "Message: " + (data.get("message") || "")
+      "Treatment need: " + (data.get("treatment") || "")
     ];
-
-    if (data.get("budget")) {
-      lines.push("Estimated budget: " + data.get("budget"));
-    }
-
-    if (data.get("date")) {
-      lines.push("Preferred travel date: " + data.get("date"));
-    }
 
     return lines.join("\n");
   }
@@ -464,18 +465,20 @@
     const phoneFull = [phoneCode, localPhone].filter(Boolean).join(" ");
     return {
       submittedAt: new Date().toISOString(),
-      sourcePage: window.location.href,
+      sourcePage: safeSourcePage(),
       name: String(data.get("name") || "").trim(),
       country: String(data.get("country") || "").trim(),
       phoneCode: phoneCode,
       localPhone: localPhone,
       phoneFull: phoneFull,
-      phone: phoneFull ? "'" + phoneFull : "",
       email: String(data.get("email") || "").trim(),
       treatment: String(data.get("treatment") || "").trim(),
       message: String(data.get("message") || "").trim(),
       budget: String(data.get("budget") || "").trim(),
-      date: String(data.get("date") || "").trim()
+      date: String(data.get("date") || "").trim(),
+      consent: String(data.get("consent") || "").trim(),
+      website: String(data.get("website") || "").trim(),
+      startedAt: String(data.get("startedAt") || "").trim()
     };
   }
 
@@ -489,6 +492,8 @@
       status = document.createElement("p");
       status.setAttribute("data-form-status", "");
       status.className = "form-status";
+      status.setAttribute("role", "status");
+      status.setAttribute("aria-live", "polite");
       form.appendChild(status);
     }
     status.textContent = message;
@@ -496,14 +501,20 @@
   }
 
   function submitToGoogleSheet(form) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
     return fetch(googleSheetEndpoint, {
       method: "POST",
       mode: "no-cors",
+      cache: "no-store",
+      credentials: "omit",
+      referrerPolicy: "no-referrer",
+      signal: controller.signal,
       headers: {
         "Content-Type": "text/plain;charset=utf-8"
       },
       body: JSON.stringify(formPayload(form))
-    });
+    }).finally(() => window.clearTimeout(timeout));
   }
 
   function openPreparedWhatsApp(url, openedWindow) {
@@ -546,6 +557,30 @@
     }
   }
 
+  function ensureSecurityFields(form) {
+    let honeypot = form.querySelector("input[name='website']");
+    if (!honeypot) {
+      honeypot = document.createElement("input");
+      honeypot.type = "text";
+      honeypot.name = "website";
+      honeypot.tabIndex = -1;
+      honeypot.autocomplete = "off";
+      honeypot.setAttribute("aria-hidden", "true");
+      honeypot.className = "form-honeypot";
+      form.appendChild(honeypot);
+    }
+
+    let startedAt = form.querySelector("input[name='startedAt']");
+    if (!startedAt) {
+      startedAt = document.createElement("input");
+      startedAt.type = "hidden";
+      startedAt.name = "startedAt";
+      form.appendChild(startedAt);
+    }
+
+    startedAt.value = String(Date.now());
+  }
+
   function updatePhoneCode(form) {
     const country = form.querySelector("[data-country-select]")?.value || "";
     const code = callingCodeFor(country);
@@ -584,20 +619,37 @@
     return input.validationMessage === "";
   }
 
+  function validateConsentInput(input) {
+    if (!input) return true;
+    input.setCustomValidity(input.checked ? "" : "Please confirm that you agree to the Privacy Policy before submitting.");
+    input.toggleAttribute("aria-invalid", Boolean(input.validationMessage));
+    return input.validationMessage === "";
+  }
+
   function validateFormFields(form) {
     const phoneInput = form.querySelector("input[name='phone']");
     const emailInput = form.querySelector("input[name='email']");
+    const consentInput = form.querySelector("input[name='consent']");
     if (phoneInput) validatePhoneInput(phoneInput);
     if (emailInput) validateEmailInput(emailInput);
+    if (consentInput) validateConsentInput(consentInput);
   }
 
   function setupFormValidation(form) {
     ensurePhoneCodeField(form);
+    ensureSecurityFields(form);
     updatePhoneCode(form);
 
     const countrySelect = form.querySelector("[data-country-select]");
     const phoneInput = form.querySelector("input[name='phone']");
     const emailInput = form.querySelector("input[name='email']");
+    const nameInput = form.querySelector("input[name='name']");
+    const messageInput = form.querySelector("textarea[name='message']");
+    const consentInput = form.querySelector("input[name='consent']");
+
+    if (nameInput) nameInput.setAttribute("maxlength", "120");
+    if (emailInput) emailInput.setAttribute("maxlength", "254");
+    if (messageInput) messageInput.setAttribute("maxlength", "1000");
 
     countrySelect?.addEventListener("change", () => {
       updatePhoneCode(form);
@@ -612,8 +664,15 @@
       validateEmailInput(emailInput);
     });
 
+    consentInput?.addEventListener("change", () => {
+      validateConsentInput(consentInput);
+    });
+
     form.addEventListener("reset", () => {
-      window.setTimeout(() => updatePhoneCode(form), 0);
+      window.setTimeout(() => {
+        updatePhoneCode(form);
+        ensureSecurityFields(form);
+      }, 0);
     });
   }
 
@@ -623,31 +682,56 @@
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (form.dataset.submitting === "true") return;
+
+        const lastSubmittedAt = Number(form.dataset.lastSubmittedAt || "0");
+        if (lastSubmittedAt && Date.now() - lastSubmittedAt < submissionCooldownMs) {
+          setFormStatus(form, "Please wait a few seconds before submitting again.", "error");
+          return;
+        }
+
         validateFormFields(form);
         if (!form.checkValidity()) {
           form.reportValidity();
           setFormStatus(form, "Please correct the highlighted details before submitting.", "error");
           return;
         }
+
+        const honeypot = form.querySelector("input[name='website']");
+        if (honeypot && honeypot.value.trim()) {
+          form.reset();
+          setFormStatus(form, "Thank you. Your enquiry was submitted for review.", "success");
+          return;
+        }
+
+        const startedAt = Number(form.querySelector("input[name='startedAt']")?.value || "0");
+        if (!startedAt || Date.now() - startedAt < minimumCompletionMs) {
+          setFormStatus(form, "Please take a moment to review your details, then submit again.", "error");
+          return;
+        }
+
         const message = formMessage(form);
         const targetUrl = whatsappUrl(message);
         const whatsappWindow = window.open("about:blank", "_blank");
         if (whatsappWindow) whatsappWindow.opener = null;
         const button = form.querySelector("button[type='submit']");
         if (button) button.disabled = true;
+        form.dataset.submitting = "true";
         setFormStatus(form, "Saving your details before opening WhatsApp...", "info");
 
         if (googleSheetReady()) {
           try {
             await submitToGoogleSheet(form);
+            form.dataset.lastSubmittedAt = String(Date.now());
             form.reset();
-            setFormStatus(form, "Thank you. Your details have been saved. Opening WhatsApp...", "success");
+            setFormStatus(form, "Thank you. Your enquiry was submitted for processing. Opening WhatsApp...", "success");
             openPreparedWhatsApp(targetUrl, whatsappWindow);
           } catch (error) {
             if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close();
             setFormStatus(form, "The form could not save right now. Please try again or use the WhatsApp button.", "error");
           } finally {
             if (button) button.disabled = false;
+            form.dataset.submitting = "false";
           }
           return;
         }
@@ -655,6 +739,7 @@
         setFormStatus(form, "Google Sheet connection is not active yet. Opening WhatsApp instead.", "info");
         openPreparedWhatsApp(targetUrl, whatsappWindow);
         if (button) button.disabled = false;
+        form.dataset.submitting = "false";
       });
     });
   }
@@ -704,7 +789,9 @@
     function createLanguageWidget(extraClass) {
       const wrapper = document.createElement("label");
       wrapper.className = "language-widget" + (extraClass ? " " + extraClass : "");
-      wrapper.innerHTML = '<span>Language</span>';
+      const label = document.createElement("span");
+      label.textContent = "Language";
+      wrapper.appendChild(label);
 
       const select = document.createElement("select");
       select.setAttribute("aria-label", "Select website language");
@@ -821,7 +908,7 @@
 
         const iframe = document.createElement("iframe");
         iframe.className = "testimonial-video";
-        iframe.src = "https://www.youtube.com/embed/" + videoId + "?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=https%3A%2F%2Fmedtreatindia.com";
+        iframe.src = "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=1&rel=0&modestbranding=1&playsinline=1";
         iframe.title = "Mariam patient testimonial for knee and gallbladder treatment with MedTreat India";
         iframe.loading = "lazy";
         iframe.referrerPolicy = "strict-origin-when-cross-origin";

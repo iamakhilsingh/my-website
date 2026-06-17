@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { render, screen } from "@testing-library/react";
+import App from "./App";
 
-test('renders learn react link', () => {
+test("renders MedTreat India homepage content", () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getAllByAltText(/MedTreat India/i)[0]).toBeInTheDocument();
+  expect(screen.getByText(/Free Consultation/i)).toBeInTheDocument();
 });

@@ -1,4 +1,14 @@
 const SHEET_NAME = "Responses";
+const MIN_FORM_AGE_MS = 2500;
+const DUPLICATE_WINDOW_SECONDS = 90;
+const ALLOWED_TREATMENTS = {
+  "Cardiology / Heart Surgery": true,
+  Orthopedics: true,
+  Oncology: true,
+  "IVF & Fertility": true,
+  "Transplant Review": true,
+  Other: true
+};
 const RESPONSE_HEADERS = [
   "Submitted At",
   "Name",
@@ -9,42 +19,51 @@ const RESPONSE_HEADERS = [
   "Email",
   "Treatment",
   "Message",
+  "Consent",
   "Budget",
   "Preferred Date",
   "Source Page"
 ];
 
 function doPost(e) {
-  const sheet = getResponseSheet();
-  const data = parsePayload(e);
-  const phoneCode = data.phoneCode || "";
-  const localPhone = data.localPhone || "";
-  const phoneFull = data.phoneFull || data.phone || [phoneCode, localPhone].filter(Boolean).join(" ");
+  try {
+    const data = validatePayload(parsePayload(e));
+    if (isSpamSubmission(data)) return jsonResponse({ ok: true });
+    if (isDuplicateSubmission(data)) return jsonResponse({ ok: true });
 
-  ensureHeaders(sheet);
+    const sheet = getResponseSheet();
+    ensureHeaders(sheet);
 
-  const row = [
-    data.submittedAt || new Date().toISOString(),
-    data.name || "",
-    data.country || "",
-    asPlainText(phoneCode),
-    asPlainText(localPhone),
-    asPlainText(phoneFull),
-    data.email || "",
-    data.treatment || "",
-    data.message || "",
-    data.budget || "",
-    data.date || "",
-    data.sourcePage || ""
-  ];
-  const nextRow = sheet.getLastRow() + 1;
+    const row = [
+      data.submittedAt,
+      data.name,
+      data.country,
+      data.phoneCode,
+      data.localPhone,
+      data.phoneFull,
+      data.email,
+      data.treatment,
+      data.message,
+      data.consent ? "Yes" : "No",
+      data.budget,
+      data.date,
+      data.sourcePage
+    ];
 
-  sheet.getRange(nextRow, 4, 1, 3).setNumberFormat("@");
-  sheet.getRange(nextRow, 1, 1, row.length).setValues([row]);
+    const lock = LockService.getScriptLock();
+    lock.waitLock(5000);
+    try {
+      const nextRow = sheet.getLastRow() + 1;
+      sheet.getRange(nextRow, 1, 1, row.length).setNumberFormat("@");
+      sheet.getRange(nextRow, 1, 1, row.length).setValues([row]);
+    } finally {
+      lock.releaseLock();
+    }
 
-  return ContentService
-    .createTextOutput(JSON.stringify({ ok: true }))
-    .setMimeType(ContentService.MimeType.JSON);
+    return jsonResponse({ ok: true });
+  } catch (error) {
+    return jsonResponse({ ok: false });
+  }
 }
 
 function parsePayload(e) {
@@ -54,6 +73,72 @@ function parsePayload(e) {
   } catch (error) {
     return {};
   }
+}
+
+function validatePayload(data) {
+  const submittedAt = sanitizeText(data.submittedAt, 64);
+  const startedAtRaw = sanitizeText(data.startedAt, 64);
+  const startedAt = Number(startedAtRaw);
+  const name = sanitizeText(data.name, 120);
+  const country = sanitizeText(data.country, 80);
+  const phoneCode = sanitizeText(data.phoneCode, 8);
+  const localPhone = sanitizeText(data.localPhone, 15);
+  const phoneFull = sanitizeText([phoneCode, localPhone].filter(Boolean).join(" "), 24);
+  const email = sanitizeText(data.email, 254).toLowerCase();
+  const treatment = sanitizeText(data.treatment, 80);
+  const message = sanitizeText(data.message, 1000);
+  const budget = sanitizeText(data.budget, 80);
+  const date = sanitizeText(data.date, 80);
+  const sourcePage = sanitizePath(data.sourcePage);
+  const consent = String(data.consent || "").toLowerCase() === "true" || String(data.consent || "").toLowerCase() === "on";
+  const website = sanitizeText(data.website, 120);
+
+  if (!submittedAt) throw new Error("Missing submission timestamp");
+  if (!startedAt || !isFinite(startedAt) || Date.now() - startedAt < MIN_FORM_AGE_MS) throw new Error("Form completed too quickly");
+  if (!consent) throw new Error("Consent not given");
+  if (!name || name.length < 2) throw new Error("Invalid name");
+  if (!country) throw new Error("Invalid country");
+  if (!/^\+[0-9]{1,4}$/.test(phoneCode)) throw new Error("Invalid phone code");
+  if (!/^[0-9]{6,15}$/.test(localPhone)) throw new Error("Invalid local phone");
+  if (!isValidEmail(email)) throw new Error("Invalid email");
+  if (!ALLOWED_TREATMENTS[treatment]) throw new Error("Invalid treatment");
+  if (message && message.length > 1000) throw new Error("Message too long");
+
+  return {
+    submittedAt: asSheetText(submittedAt),
+    startedAt: startedAt,
+    name: asSheetText(name),
+    country: asSheetText(country),
+    phoneCode: asSheetText(phoneCode),
+    localPhone: asSheetText(localPhone),
+    phoneFull: asSheetText(phoneFull),
+    email: asSheetText(email),
+    treatment: asSheetText(treatment),
+    message: asSheetText(message),
+    consent: consent,
+    budget: asSheetText(budget),
+    date: asSheetText(date),
+    sourcePage: asSheetText(sourcePage),
+    website: website
+  };
+}
+
+function isSpamSubmission(data) {
+  return Boolean(data.website);
+}
+
+function isDuplicateSubmission(data) {
+  const fingerprintSource = [
+    data.email,
+    data.phoneFull,
+    data.treatment,
+    data.sourcePage
+  ].join("|");
+  const key = "lead:" + Utilities.base64EncodeWebSafe(fingerprintSource).slice(0, 120);
+  const cache = CacheService.getScriptCache();
+  if (cache.get(key)) return true;
+  cache.put(key, "1", DUPLICATE_WINDOW_SECONDS);
+  return false;
 }
 
 function getResponseSheet() {
@@ -83,8 +168,33 @@ function ensureHeaders(sheet) {
   }
 }
 
-function asPlainText(value) {
-  return String(value || "").trim().replace(/^'/, "");
+function sanitizeText(value, maxLength) {
+  return String(value || "")
+    .replace(/[\u0000-\u001F\u007F]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength || 1000);
+}
+
+function sanitizePath(value) {
+  const path = sanitizeText(value, 120);
+  return /^\/[A-Za-z0-9/_-]*$/.test(path) ? path : "/";
+}
+
+function asSheetText(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return /^[=+\-@]/.test(text) ? "'" + text : text;
+}
+
+function isValidEmail(value) {
+  return /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(value);
+}
+
+function jsonResponse(payload) {
+  return ContentService
+    .createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function repairLegacyPhoneErrors() {
@@ -92,22 +202,14 @@ function repairLegacyPhoneErrors() {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
 
-  const phoneRange = sheet.getRange(2, 4, lastRow - 1, 1);
-  const formulas = phoneRange.getFormulas();
-  const displayValues = phoneRange.getDisplayValues();
-  const currentValues = phoneRange.getValues();
-  const repairedValues = currentValues.map(function (row, index) {
-    const formula = formulas[index][0];
-    const displayValue = displayValues[index][0];
-    const currentValue = row[0];
-
-    if (displayValue === "#ERROR!" && formula) {
-      return [formula.replace(/^=/, "").trim()];
-    }
-
-    return [String(currentValue || displayValue || "").trim().replace(/^'/, "")];
+  const phoneRange = sheet.getRange(2, 4, lastRow - 1, 3);
+  const values = phoneRange.getDisplayValues().map(function (row) {
+    return row.map(function (cell) {
+      const cleaned = String(cell || "").replace(/^=/, "").trim();
+      return asSheetText(cleaned);
+    });
   });
 
   phoneRange.setNumberFormat("@");
-  phoneRange.setValues(repairedValues);
+  phoneRange.setValues(values);
 }

@@ -9,6 +9,7 @@ const domain = "https://www.medtreatindia.com";
 const excluded = new Set([
   ".DS_Store",
   "README.md",
+  "_headers",
   "image-credits.md",
   "google-sheets-setup.md",
   "google-sheet-apps-script.js",
@@ -37,7 +38,8 @@ const sitemap = [
   '<?xml version="1.0" encoding="UTF-8"?>',
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
   ...pages.map((page) => {
-    const loc = page === "index.html" ? domain + "/" : domain + "/" + page;
+    const cleanPath = page === "index.html" ? "/" : "/" + page.replace(/\.html$/, "");
+    const loc = domain + cleanPath;
     return `  <url><loc>${loc}</loc></url>`;
   }),
   "</urlset>",
