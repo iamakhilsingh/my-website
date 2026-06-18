@@ -19,7 +19,9 @@ const RESPONSE_HEADERS = [
   "Message",
   "Budget",
   "Preferred Date",
-  "Source Page"
+  "Source Page",
+  "City",
+  "Age / DOB"
 ];
 
 function doPost(e) {
@@ -90,7 +92,9 @@ function buildRowMap(data) {
     "Message": data.message,
     "Budget": data.budget,
     "Preferred Date": data.date,
-    "Source Page": data.sourcePage
+    "Source Page": data.sourcePage,
+    "City": data.city,
+    "Age / DOB": data.ageOrDob
   };
 }
 
@@ -99,9 +103,10 @@ function validatePayload(data) {
   const startedAtRaw = sanitizeText(pickField(data, ["startedAt"]), 64);
   const startedAt = Number(startedAtRaw);
   const leadType = sanitizeText(pickField(data, ["leadType"]), 40);
-  const isQuickLead = leadType === "popup";
+  const isQuickLead = leadType === "popup" || leadType === "home-quote";
   const name = sanitizeText(pickField(data, ["name"]), 120);
   const country = sanitizeText(pickField(data, ["country"]), 80);
+  const city = sanitizeText(pickField(data, ["city"]), 80);
   const phoneCode = sanitizeText(pickField(data, ["phoneCode"]), 8);
   const phoneValue = pickField(data, [
     "phone",
@@ -120,6 +125,7 @@ function validatePayload(data) {
   const email = sanitizeText(pickField(data, ["email"]), 254).toLowerCase();
   const treatment = sanitizeText(pickField(data, ["treatment"]), 80);
   const message = sanitizeText(pickField(data, ["message"]), 1000);
+  const ageOrDob = sanitizeText(pickField(data, ["ageOrDob", "age", "dob"]), 40);
   const budget = sanitizeText(pickField(data, ["budget"]), 80);
   const date = sanitizeText(pickField(data, ["date"]), 80);
   const sourcePage = sanitizePath(pickField(data, ["sourcePage"]));
@@ -147,12 +153,14 @@ function validatePayload(data) {
     leadType: asSheetText(leadType),
     name: asSheetText(name),
     country: asSheetText(country),
+    city: asSheetText(city),
     phoneCode: asSheetText(phoneCode),
     localPhone: asSheetText(localPhone),
     phoneFull: asSheetText(phoneFull),
     email: asSheetText(email),
     treatment: asSheetText(treatment),
     message: asSheetText(message),
+    ageOrDob: asSheetText(ageOrDob),
     consent: consent,
     budget: asSheetText(budget),
     date: asSheetText(date),

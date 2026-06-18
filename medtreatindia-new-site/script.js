@@ -417,11 +417,14 @@
   function populateCountries() {
     document.querySelectorAll("[data-country-select]").forEach((select) => {
       const selected = select.value;
+      const existingValues = new Set(Array.from(select.options).map((option) => option.value));
       countryNames.forEach((country) => {
+        if (existingValues.has(country)) return;
         const option = document.createElement("option");
         option.value = country;
         option.textContent = country;
         select.appendChild(option);
+        existingValues.add(country);
       });
       select.value = selected;
     });
@@ -506,6 +509,7 @@
       leadType,
       name: formValue(data, ["name"]),
       country,
+      city: formValue(data, ["city"]),
       phoneCode,
       phone: phoneFull,
       localPhone: phoneInput,
@@ -513,6 +517,7 @@
       email: formValue(data, ["email"]),
       treatment: formValue(data, ["treatment"]),
       message: formValue(data, ["message"]),
+      ageOrDob: formValue(data, ["ageOrDob", "age", "dob"]),
       budget: formValue(data, ["budget"]),
       date: formValue(data, ["date"]),
       consent: formValue(data, ["consent"]),
@@ -529,11 +534,15 @@
     ];
 
     if (submission.country) lines.push("Country: " + submission.country);
+    if (submission.city) lines.push("City: " + submission.city);
     lines.push("Phone / WhatsApp: " + submission.phoneFull);
     if (submission.email) lines.push("Email: " + submission.email);
-    lines.push("Treatment need: " + submission.treatment);
+    if (submission.treatment && (submission.treatment !== "Other" || !submission.message)) {
+      lines.push("Treatment need: " + submission.treatment);
+    }
 
-    if (submission.message) lines.push("Message: " + submission.message);
+    if (submission.message) lines.push("Current medical problem: " + submission.message);
+    if (submission.ageOrDob) lines.push("Age / DOB: " + submission.ageOrDob);
     if (submission.budget) lines.push("Budget: " + submission.budget);
     if (submission.date) lines.push("Preferred Date: " + submission.date);
     return lines.join("\n");
@@ -546,6 +555,7 @@
       leadType: submission.leadType,
       name: submission.name,
       country: submission.country,
+      city: submission.city,
       phoneCode: submission.phoneCode,
       localPhone: submission.localPhone || submission.phone,
       phoneFull: submission.phoneFull,
@@ -553,6 +563,7 @@
       email: submission.email,
       treatment: submission.treatment,
       message: submission.message,
+      ageOrDob: submission.ageOrDob,
       budget: submission.budget,
       date: submission.date,
       consent: submission.consent,
@@ -719,9 +730,6 @@
     leadPopupElement.classList.remove("is-open");
     leadPopupElement.setAttribute("aria-hidden", "true");
     document.body.classList.remove("lead-popup-open");
-    if (persist) {
-      window.sessionStorage.setItem("medtreatindia-popup-dismissed", "1");
-    }
     window.setTimeout(() => {
       if (leadPopupElement) leadPopupElement.hidden = true;
     }, 240);
@@ -744,7 +752,6 @@
 
   function setupLeadPopup() {
     if (normalizeSourcePath(window.location.pathname || "/") !== "/") return;
-    if (window.sessionStorage.getItem("medtreatindia-popup-dismissed") === "1") return;
 
     const popup = document.createElement("section");
     popup.className = "lead-popup";
@@ -759,13 +766,12 @@
       '  <p class="lead-popup__copy">Tell us your name, phone number, treatment need and budget. We&rsquo;ll guide you from there.</p>',
       '  <form class="consult-form lead-popup__form" data-consult-form data-form-variant="popup">',
       '    <input name="leadType" type="hidden" value="popup" />',
-      '    <input name="country" type="hidden" value="" />',
       '    <label>Full name <input name="name" autocomplete="name" maxlength="120" required /></label>',
+      '    <label>Country <select name="country" data-country-select required><option value="India" selected>India</option></select></label>',
       '    <label>Phone number <input name="phone" autocomplete="tel-national" required /></label>',
       '    <label>Treatment requirement <select name="treatment" required><option value="">Select a treatment</option><option>Cardiology / Heart Surgery</option><option>Orthopedics</option><option>Oncology</option><option>IVF & Fertility</option><option>Transplant Review</option><option>Other</option></select></label>',
       '    <label>Budget <input name="budget" inputmode="text" maxlength="80" placeholder="e.g. 7000 USD" /></label>',
       '    <label class="consent-check"><input name="consent" type="checkbox" required /> <span>I agree to the <a class="text-link" href="privacy-policy.html">Privacy Policy</a> and consent to MedTreat India contacting me about my enquiry.</span></label>',
-      '    <p class="form-warning">Please do not include medical reports, passport details, payment information or highly sensitive medical information in this enquiry form. Our patient coordinator will provide a safer method for sharing documents if required.</p>',
       '    <input class="form-honeypot" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />',
       '    <input name="startedAt" type="hidden" value="" />',
       '    <button class="btn btn-primary btn-full" type="submit">Get a Free quote</button>',
@@ -782,12 +788,11 @@
     document.body.appendChild(popup);
     leadPopupElement = popup;
 
+    populateCountries();
     setupFormValidation(popup.querySelector("[data-consult-form]"));
 
     leadPopupTimer = window.setTimeout(() => {
-      if (!window.sessionStorage.getItem("medtreatindia-popup-dismissed")) {
-        openLeadPopup();
-      }
+      openLeadPopup();
     }, 3000);
 
     document.addEventListener("keydown", (event) => {
