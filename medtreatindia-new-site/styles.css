@@ -92,7 +92,6 @@ button, input, select, textarea { font: inherit; }
   height: 100%;
   object-fit: contain;
   object-position: left center;
-  content: url("assets/brand/medtreatindia-logo-wordmark-transparent.png");
 }
 .site-nav { display: flex; justify-content: center; gap: 24px; font-size: .92rem; font-weight: 800; color: #263142; }
 .site-nav a { padding: 8px 0; }
@@ -1620,7 +1619,6 @@ input[aria-invalid="true"] {
   min-height: 52px;
   object-fit: contain;
   object-position: left center;
-  content: url("assets/brand/medtreatindia-logo-wordmark-dark.png");
   margin-bottom: 18px;
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 999px;
@@ -1689,8 +1687,6 @@ input[aria-invalid="true"] {
     background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(15,23,42,.68));
     box-shadow: 0 12px 28px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.08);
   }
-  .brand img { content: url("assets/brand/medtreatindia-logo-wordmark-dark.png"); }
-
   .site-nav { color: #dbe6f5; }
   .site-nav a:hover,
   .site-nav a[aria-current="page"] { color: #8fb6ff; }
@@ -2087,7 +2083,6 @@ input[aria-invalid="true"] {
   background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(15,23,42,.68));
   box-shadow: 0 12px 28px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.08);
 }
-:root[data-theme="dark"] .brand img { content: url("assets/brand/medtreatindia-logo-wordmark-dark.png"); }
 :root[data-theme="dark"] .site-nav { color: #dbe6f5; }
 :root[data-theme="dark"] .site-nav a:hover,
 :root[data-theme="dark"] .site-nav a[aria-current="page"] { color: #8fb6ff; }
@@ -2328,7 +2323,6 @@ input[aria-invalid="true"] {
   background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(245,249,255,.82));
   box-shadow: 0 10px 26px rgba(17,45,78,.08), inset 0 1px 0 rgba(255,255,255,.78);
 }
-:root[data-theme="light"] .brand img { content: url("assets/brand/medtreatindia-logo-wordmark-transparent.png"); }
 :root[data-theme="light"] .site-nav { color: #263142; }
 :root[data-theme="light"] .nav-toggle { background: #fff; border-color: var(--line); }
 :root[data-theme="light"] .btn-whatsapp { border-color: rgba(32,197,107,.45); background: #fff; color: #11a95a; }
