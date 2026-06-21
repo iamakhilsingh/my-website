@@ -490,6 +490,7 @@
     const data = new FormData(form);
     const leadType = formValue(data, ["leadType"]);
     const country = formValue(data, ["country"]);
+    const sourcePage = formValue(data, ["source", "sourcePage"]) || safeSourcePage();
     const phoneInput = formValue(data, [
       "phone",
       "phoneNumber",
@@ -501,10 +502,10 @@
     ]);
     const phoneCode = formValue(data, ["phoneCode"]) || callingCodeFor(country) || "";
     const phoneFull = phoneInput.startsWith("+") ? phoneInput : [phoneCode, phoneInput].filter(Boolean).join(" ");
-    const sourcePage = safeSourcePage();
 
     return {
       submittedAt: new Date().toISOString(),
+      source: sourcePage,
       sourcePage,
       leadType,
       name: formValue(data, ["name"]),
@@ -545,12 +546,14 @@
     if (submission.ageOrDob) lines.push("Age / DOB: " + submission.ageOrDob);
     if (submission.budget) lines.push("Budget: " + submission.budget);
     if (submission.date) lines.push("Preferred Date: " + submission.date);
+    if (submission.sourcePage) lines.push("Source: " + submission.sourcePage);
     return lines.join("\n");
   }
 
   function formPayload(submission) {
     return {
       submittedAt: submission.submittedAt,
+      source: submission.sourcePage,
       sourcePage: submission.sourcePage,
       leadType: submission.leadType,
       name: submission.name,
@@ -671,6 +674,18 @@
     startedAt.value = String(Date.now());
   }
 
+  function ensureSourceField(form) {
+    let source = form.querySelector("input[name='source']");
+    if (!source) {
+      source = document.createElement("input");
+      source.type = "hidden";
+      source.name = "source";
+      form.appendChild(source);
+    }
+
+    source.value = safeSourcePage();
+  }
+
   function updatePhoneCode(form) {
     const country = form.querySelector("[data-country-select]")?.value || "";
     const code = callingCodeFor(country);
@@ -769,7 +784,9 @@
       '    <label>Full name <input name="name" autocomplete="name" maxlength="120" required /></label>',
       '    <label>Country <select name="country" data-country-select required><option value="India" selected>India</option></select></label>',
       '    <label>Phone number <input name="phone" autocomplete="tel-national" required /></label>',
+      '    <label>Email <input name="email" type="email" autocomplete="email" maxlength="254" required /></label>',
       '    <label>Treatment requirement <select name="treatment" required><option value="">Select a treatment</option><option>Cardiology / Heart Surgery</option><option>Orthopedics</option><option>Oncology</option><option>IVF & Fertility</option><option>Transplant Review</option><option>Other</option></select></label>',
+      '    <label>Medical concern <textarea name="message" rows="3" maxlength="1000" placeholder="Briefly describe the medical problem"></textarea></label>',
       '    <label>Budget <input name="budget" inputmode="text" maxlength="80" placeholder="e.g. 7000 USD" /></label>',
       '    <label class="consent-check"><input name="consent" type="checkbox" required /> <span>I agree to the <a class="text-link" href="privacy-policy.html">Privacy Policy</a> and consent to MedTreat India contacting me about my enquiry.</span></label>',
       '    <input class="form-honeypot" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />',
@@ -805,6 +822,7 @@
   function setupFormValidation(form) {
     ensurePhoneCodeField(form);
     ensureSecurityFields(form);
+    ensureSourceField(form);
     updatePhoneCode(form);
 
     const countrySelect = form.querySelector("[data-country-select]");
@@ -839,6 +857,7 @@
       window.setTimeout(() => {
         updatePhoneCode(form);
         ensureSecurityFields(form);
+        ensureSourceField(form);
       }, 0);
     });
   }
@@ -926,17 +945,46 @@
     const nav = document.querySelector("[data-nav]");
     if (!button || !nav) return;
 
-    button.addEventListener("click", () => {
-      const isOpen = nav.classList.toggle("is-open");
+    function setOpen(isOpen) {
+      nav.classList.toggle("is-open", isOpen);
       button.setAttribute("aria-expanded", String(isOpen));
+      button.setAttribute("aria-label", isOpen ? "Close navigation" : "Open navigation");
+      document.body.classList.toggle("nav-open", isOpen);
+    }
+
+    button.addEventListener("click", () => {
+      setOpen(!nav.classList.contains("is-open"));
     });
 
     nav.addEventListener("click", (event) => {
       if (event.target.matches("a")) {
-        nav.classList.remove("is-open");
-        button.setAttribute("aria-expanded", "false");
+        setOpen(false);
       }
     });
+
+    document.addEventListener("click", (event) => {
+      if (!nav.classList.contains("is-open")) return;
+      if (event.target.closest("[data-nav]") || event.target.closest("[data-nav-toggle]")) return;
+      setOpen(false);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setOpen(false);
+    });
+  }
+
+  function setupImageLoading() {
+    document.querySelectorAll("img").forEach((image) => {
+      image.decoding = "async";
+      if (image.closest(".brand") || image.closest(".hero-bg")) return;
+      if (!image.hasAttribute("loading")) image.loading = "lazy";
+    });
+
+    const heroImage = document.querySelector(".hero-bg img");
+    if (heroImage) {
+      heroImage.decoding = "async";
+      heroImage.setAttribute("fetchpriority", "high");
+    }
   }
 
   function setupWhatsAppLinks() {
@@ -1202,6 +1250,7 @@
   setupNavigation();
   setupWhatsAppLinks();
   setupLanguageSelectors();
+  setupImageLoading();
   setupHospitalSliders();
   setupTestimonialVideos();
   setupZoomReveal();
