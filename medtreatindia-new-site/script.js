@@ -593,29 +593,41 @@
     status.dataset.status = type || "info";
   }
 
-  function submitToGoogleSheet(submission) {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 8000);
-    return fetch(googleSheetEndpoint, {
-      method: "POST",
-      mode: "no-cors",
-      cache: "no-store",
-      credentials: "omit",
-      referrerPolicy: "no-referrer",
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-      },
-      body: JSON.stringify(formPayload(submission))
-    }).finally(() => window.clearTimeout(timeout));
-  }
+  function submitToGoogleSheetInBackground(submission) {
+    if (!googleSheetReady()) return false;
 
-  function openPreparedWhatsApp(url, openedWindow) {
-    if (openedWindow && !openedWindow.closed) {
-      openedWindow.location.href = url;
-      return;
+    const body = JSON.stringify(formPayload(submission));
+
+    try {
+      if ("sendBeacon" in navigator) {
+        const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
+        if (navigator.sendBeacon(googleSheetEndpoint, blob)) return true;
+      }
+    } catch (error) {
+      // Fall back to fetch below; WhatsApp redirect must not be blocked.
     }
 
+    try {
+      fetch(googleSheetEndpoint, {
+        method: "POST",
+        mode: "no-cors",
+        cache: "no-store",
+        credentials: "omit",
+        keepalive: true,
+        referrerPolicy: "no-referrer",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body
+      }).catch(() => {});
+    } catch (error) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function openPreparedWhatsApp(url) {
     window.location.href = url;
   }
 
@@ -899,43 +911,17 @@
         const submission = captureSubmissionData(form);
         const message = formMessage(submission);
         const targetUrl = whatsappUrl(message);
-        const whatsappWindow = window.open("about:blank", "_blank");
-        if (whatsappWindow) whatsappWindow.opener = null;
         const button = form.querySelector("button[type='submit']");
         if (button) button.disabled = true;
         form.dataset.submitting = "true";
-        setFormStatus(form, "Saving your details before opening WhatsApp...", "info");
-
-        if (googleSheetReady()) {
-          try {
-            await submitToGoogleSheet(submission);
-            form.dataset.lastSubmittedAt = String(Date.now());
-            form.reset();
-            setFormStatus(form, "Thank you. Your enquiry was submitted for processing. Opening WhatsApp...", "success");
-            if (form.closest("[data-form-variant='popup']")) {
-              closeLeadPopup(true);
-            }
-            openPreparedWhatsApp(targetUrl, whatsappWindow);
-          } catch (error) {
-            if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close();
-            if (form.closest("[data-form-variant='popup']")) {
-              closeLeadPopup(false);
-            }
-            setFormStatus(form, "The form could not save right now. Please try again or use the WhatsApp button.", "error");
-          } finally {
-            if (button) button.disabled = false;
-            form.dataset.submitting = "false";
-          }
-          return;
-        }
+        form.dataset.lastSubmittedAt = String(Date.now());
+        submitToGoogleSheetInBackground(submission);
+        setFormStatus(form, "Opening WhatsApp with your enquiry details...", "success");
 
         if (form.closest("[data-form-variant='popup']")) {
           closeLeadPopup(true);
         }
-        setFormStatus(form, "Google Sheet connection is not active yet. Opening WhatsApp instead.", "info");
-        openPreparedWhatsApp(targetUrl, whatsappWindow);
-        if (button) button.disabled = false;
-        form.dataset.submitting = "false";
+        openPreparedWhatsApp(targetUrl);
       });
     });
   }
