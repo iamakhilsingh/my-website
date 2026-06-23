@@ -728,6 +728,12 @@
     const value = input.value.trim();
     input.value = value;
 
+    if (!value && !input.required) {
+      input.setCustomValidity("");
+      input.toggleAttribute("aria-invalid", false);
+      return true;
+    }
+
     const hasWhitespace = /\s/.test(value);
     const emailPattern = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/;
     const isValid = Boolean(value) && value.length <= 254 && !hasWhitespace && emailPattern.test(value);
@@ -738,6 +744,11 @@
 
   function validateConsentInput(input) {
     if (!input) return true;
+    if (input.type === "hidden") {
+      input.setCustomValidity("");
+      input.toggleAttribute("aria-invalid", false);
+      return true;
+    }
     input.setCustomValidity(input.checked ? "" : "Please confirm that you agree to the Privacy Policy before submitting.");
     input.toggleAttribute("aria-invalid", Boolean(input.validationMessage));
     return input.validationMessage === "";
@@ -786,24 +797,24 @@
     popup.setAttribute("aria-hidden", "true");
     popup.innerHTML = [
       '<div class="lead-popup__backdrop" data-lead-popup-close></div>',
-      '<div class="lead-popup__panel" role="dialog" aria-modal="true" aria-labelledby="lead-popup-title">',
+      '<div class="lead-popup__panel quote-form-card" role="dialog" aria-modal="true" aria-labelledby="lead-popup-title">',
       '  <button class="lead-popup__close" type="button" aria-label="Close popup" data-lead-popup-close>&times;</button>',
-      '  <p class="lead-popup__eyebrow">Quick enquiry</p>',
-      '  <h2 id="lead-popup-title">Let us help you</h2>',
-      '  <p class="lead-popup__copy">Tell us your name, phone number, treatment need and budget. We&rsquo;ll guide you from there.</p>',
+      '  <h2 id="lead-popup-title">Let Us Help You</h2>',
       '  <form class="consult-form lead-popup__form" data-consult-form data-form-variant="popup">',
       '    <input name="leadType" type="hidden" value="popup" />',
-      '    <label>Full name <input name="name" autocomplete="name" maxlength="120" required /></label>',
-      '    <label>Country <select name="country" data-country-select required><option value="India" selected>India</option></select></label>',
-      '    <label>Phone number <input name="phone" autocomplete="tel-national" required /></label>',
-      '    <label>Email <input name="email" type="email" autocomplete="email" maxlength="254" required /></label>',
-      '    <label>Treatment requirement <select name="treatment" required><option value="">Select a treatment</option><option>Cardiology / Heart Surgery</option><option>Orthopedics</option><option>Oncology</option><option>IVF & Fertility</option><option>Transplant Review</option><option>Other</option></select></label>',
-      '    <label>Medical concern <textarea name="message" rows="3" maxlength="1000" placeholder="Briefly describe the medical problem"></textarea></label>',
-      '    <label>Budget <input name="budget" inputmode="text" maxlength="80" placeholder="e.g. 7000 USD" /></label>',
-      '    <label class="consent-check"><input name="consent" type="checkbox" required /> <span>I agree to the <a class="text-link" href="privacy-policy.html">Privacy Policy</a> and consent to MedTreat India contacting me about my enquiry.</span></label>',
+      '    <input name="treatment" type="hidden" value="Other" />',
+      '    <input name="consent" type="hidden" value="true" />',
+      '    <label class="field-label-hidden"><span>Patient Name</span><input name="name" autocomplete="name" maxlength="120" placeholder="Patient Name" required /></label>',
+      '    <label class="field-label-hidden"><span>Country</span><select name="country" data-country-select required><option value="India" selected>India</option></select></label>',
+      '    <label class="field-label-hidden"><span>City</span><input name="city" autocomplete="address-level2" maxlength="80" placeholder="City" required /></label>',
+      '    <label class="field-label-hidden phone-field"><span>Your Phone number</span><input name="phone" autocomplete="tel-national" placeholder="Your Phone number" required /></label>',
+      '    <label class="field-label-hidden"><span>Email Address</span><input name="email" type="email" autocomplete="email" maxlength="254" placeholder="Email Address" /></label>',
+      '    <label class="field-label-hidden"><span>Date of Birth</span><input name="ageOrDob" autocomplete="bday" maxlength="40" placeholder="Date of Birth (DD-MM-YYYY)" /></label>',
+      '    <label class="field-label-hidden"><span>Describe The Current Medical Problem</span><textarea name="message" rows="3" maxlength="1000" placeholder="Describe The Current Medical Problem"></textarea></label>',
       '    <input class="form-honeypot" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />',
       '    <input name="startedAt" type="hidden" value="" />',
-      '    <button class="btn btn-primary btn-full" type="submit">Get a Free quote</button>',
+      '    <button class="btn btn-primary btn-full" type="submit">Get FREE Quote</button>',
+      '    <p class="form-legal">By submitting this form I agree to the <a class="text-link" href="terms-and-conditions.html">Terms of Use</a> and <a class="text-link" href="privacy-policy.html">Privacy Policy</a> of MedTreat India.</p>',
       "  </form>",
       "</div>"
     ].join("");
