@@ -1240,12 +1240,45 @@
     });
   }
 
+  function setupFloatingWhatsAppVisibility() {
+    const floatingButton = document.querySelector(".floating-wa");
+    const hero = document.querySelector(".hero");
+    const mobileQuery = window.matchMedia("(max-width: 700px)");
+
+    if (!floatingButton || !hero || !("IntersectionObserver" in window)) return;
+
+    function setHidden(isHeroVisible) {
+      floatingButton.classList.toggle("is-hidden-on-hero", mobileQuery.matches && isHeroVisible);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const heroEntry = entries.find((entry) => entry.target === hero);
+        if (heroEntry) setHidden(heroEntry.isIntersecting);
+      },
+      { threshold: 0.08 }
+    );
+
+    observer.observe(hero);
+
+    const handleMobileChange = () => {
+      setHidden(hero.getBoundingClientRect().bottom > 0);
+    };
+
+    if (typeof mobileQuery.addEventListener === "function") {
+      mobileQuery.addEventListener("change", handleMobileChange);
+    } else if (typeof mobileQuery.addListener === "function") {
+      mobileQuery.addListener(handleMobileChange);
+    }
+  }
+
   setupThemeToggle();
   populateCountries();
   setupLeadPopup();
   setupForms();
   setupNavigation();
   setupWhatsAppLinks();
+  setupFloatingWhatsAppVisibility();
   setupLanguageSelectors();
   setupImageLoading();
   setupHospitalSliders();
