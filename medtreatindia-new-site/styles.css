@@ -685,46 +685,15 @@ body.lead-popup-open {
   transform: translateY(-1px);
 }
 .theme-toggle-icon {
-  position: relative;
   width: 24px;
   height: 24px;
   flex: 0 0 auto;
-  border-radius: 50%;
-  background: #f5b51b;
-  box-shadow: 0 0 0 4px rgba(245,181,27,.18);
-}
-.theme-toggle-icon::before,
-.theme-toggle-icon::after {
-  content: "";
-  position: absolute;
-  inset: 50% auto auto 50%;
-  transform: translate(-50%, -50%);
-}
-.theme-toggle-icon::before {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: repeating-conic-gradient(#f5b51b 0deg 10deg, transparent 10deg 30deg);
-  opacity: .9;
-}
-.theme-toggle-icon::after {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #f5b51b;
+  background: url("assets/icons/sun.svg") center / 24px 24px no-repeat;
+  filter: drop-shadow(0 2px 5px rgba(183,110,0,.2));
 }
 :root[data-theme="dark"] .theme-toggle-icon {
-  background: #dce9ff;
-  box-shadow: inset -7px -4px 0 #7ba5ff, 0 0 0 4px rgba(112,162,255,.18);
-}
-:root[data-theme="dark"] .theme-toggle-icon::before {
-  display: none;
-}
-:root[data-theme="dark"] .theme-toggle-icon::after {
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  box-shadow: inset -7px -4px 0 #7ba5ff;
+  background-image: url("assets/icons/moon.svg");
+  filter: drop-shadow(0 2px 6px rgba(112,162,255,.32));
 }
 .form-status {
   margin: 0;
@@ -2150,29 +2119,49 @@ input[aria-invalid="true"] {
   .brand { width: 174px; height: 46px; }
   .hero-controls {
     position: relative;
+    display: flex;
     top: auto;
     right: auto;
     left: auto;
     width: fit-content;
     max-width: calc(100% - 28px);
-    margin: 20px auto 0;
-    justify-content: center;
-    gap: 6px;
-    padding: 5px;
+    margin: 14px max(14px, env(safe-area-inset-right)) 0 auto;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 4px;
   }
   .hero-controls .language-widget {
-    max-width: 176px;
-    padding: 0 9px;
+    min-height: 36px;
+    max-width: 154px;
+    padding: 0 8px;
   }
   .hero-controls .language-widget span { display: none; }
   .hero-controls .language-widget select {
-    width: 142px;
-    max-width: 142px;
-    font-size: .8rem;
+    min-height: 34px;
+    width: 126px;
+    max-width: 126px;
+    font-size: .76rem;
+    padding-right: 19px;
+  }
+  .hero-controls .language-widget::after {
+    right: 10px;
+    width: 6px;
+    height: 6px;
+    border-width: 0 1.5px 1.5px 0;
   }
   .hero-controls .theme-toggle {
-    min-height: 40px;
-    padding: 8px 11px 8px 8px;
+    width: 36px;
+    min-height: 36px;
+    justify-content: center;
+    padding: 6px;
+  }
+  .hero-controls .theme-toggle-icon {
+    width: 20px;
+    height: 20px;
+    background-size: 20px 20px;
+  }
+  .hero-controls .theme-toggle-label {
+    display: none;
   }
   .hero-layout { padding: 34px 0 52px; gap: 32px; }
   .hero-copy p:not(.eyebrow) { font-size: 1rem; }
@@ -2970,26 +2959,26 @@ input[aria-invalid="true"] {
 
 @media (max-width: 430px) {
   .hero-controls {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    width: calc(100% - 24px);
-    max-width: 360px;
+    display: flex;
+    width: fit-content;
+    max-width: calc(100% - 24px);
+    margin-right: max(12px, env(safe-area-inset-right));
   }
 
   .hero-controls .language-widget {
-    width: 100%;
-    max-width: none;
+    width: auto;
+    max-width: 146px;
   }
 
   .hero-controls .language-widget select {
-    width: 100%;
-    max-width: none;
+    width: 118px;
+    max-width: 118px;
   }
 
   .hero-controls .theme-toggle {
-    width: 44px;
-    min-height: 44px;
-    padding: 8px;
+    width: 36px;
+    min-height: 36px;
+    padding: 6px;
   }
 
   .page-hero h1,
@@ -3060,11 +3049,19 @@ input[aria-invalid="true"] {
 
 @media (max-width: 360px) {
   .hero-controls {
-    width: calc(100% - 20px);
+    width: fit-content;
+    max-width: calc(100% - 20px);
+    margin-right: max(10px, env(safe-area-inset-right));
   }
 
   .hero-controls .language-widget {
     min-width: 0;
+    max-width: 138px;
+  }
+
+  .hero-controls .language-widget select {
+    width: 110px;
+    max-width: 110px;
   }
 
   .quote-form-card input,
