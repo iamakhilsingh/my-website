@@ -1168,7 +1168,8 @@
       ".floating-wa"
     ];
     const elements = Array.from(document.querySelectorAll(selectors.join(","))).filter((element) => {
-      return !element.closest("[data-zoom-reveal]") && !element.matches(".site-header, .site-header *");
+      return !element.closest("[data-zoom-reveal]") &&
+        !element.matches(".site-header, .site-header *, .blog-article-body");
     });
 
     document.body.classList.add("zoom-reveal-ready");
