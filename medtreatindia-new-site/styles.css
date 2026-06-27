@@ -2312,6 +2312,14 @@ input[aria-invalid="true"] {
   .feature-photo img { height: 280px; }
   .feature-photo figcaption { font-size: 1.05rem; }
   .footer-bottom { display: block; }
+  .footer-bottom p:last-child {
+    line-height: 1.8;
+  }
+  .site-footer .footer-bottom a {
+    display: inline;
+    min-height: 0;
+    margin: 0;
+  }
   .floating-wa { width: 54px; height: 54px; right: 14px; bottom: 14px; }
   .floating-wa img { width: 48px; height: 48px; }
 }
