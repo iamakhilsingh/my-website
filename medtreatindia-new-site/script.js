@@ -427,6 +427,198 @@
         existingValues.add(country);
       });
       select.value = selected;
+      setupCountrySearch(select);
+    });
+  }
+
+  function setupCountrySearch(select) {
+    if (!select || select.dataset.countrySearchReady === "true") return;
+
+    select.dataset.countrySearchReady = "true";
+    const wrapper = document.createElement("div");
+    const input = document.createElement("input");
+    const listbox = document.createElement("div");
+    const listboxId = "country-options-" + Math.random().toString(36).slice(2, 10);
+    let matches = countryNames.slice();
+    let activeIndex = -1;
+    let isOpen = false;
+
+    wrapper.className = "country-search";
+    input.className = "country-search__input";
+    input.type = "text";
+    input.placeholder = "Type or select country";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.required = select.required;
+    input.value = select.value;
+    input.setAttribute("role", "combobox");
+    input.setAttribute("aria-autocomplete", "list");
+    input.setAttribute("aria-controls", listboxId);
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("aria-label", "Country");
+
+    listbox.className = "country-search__listbox";
+    listbox.id = listboxId;
+    listbox.hidden = true;
+    listbox.setAttribute("role", "listbox");
+    listbox.setAttribute("aria-label", "Country suggestions");
+
+    select.required = false;
+    select.tabIndex = -1;
+    select.setAttribute("aria-hidden", "true");
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.append(select, input, listbox);
+
+    function setOpen(nextOpen) {
+      isOpen = nextOpen;
+      listbox.hidden = !nextOpen;
+      input.setAttribute("aria-expanded", String(nextOpen));
+      wrapper.closest("label")?.classList.toggle("has-country-search-open", nextOpen);
+      if (!nextOpen) {
+        activeIndex = -1;
+        input.removeAttribute("aria-activedescendant");
+      }
+    }
+
+    function setActive(nextIndex) {
+      const options = Array.from(listbox.querySelectorAll("[role='option']"));
+      if (!options.length) return;
+      activeIndex = (nextIndex + options.length) % options.length;
+      options.forEach((option, index) => {
+        const active = index === activeIndex;
+        option.classList.toggle("is-active", active);
+        option.setAttribute("aria-selected", String(active));
+      });
+      const activeOption = options[activeIndex];
+      input.setAttribute("aria-activedescendant", activeOption.id);
+      activeOption.scrollIntoView({ block: "nearest" });
+    }
+
+    function chooseCountry(country) {
+      input.value = country;
+      input.setCustomValidity("");
+      select.value = country;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      setOpen(false);
+    }
+
+    function renderOptions(query = "") {
+      const normalizedQuery = query.trim().toLocaleLowerCase();
+      if (normalizedQuery) {
+        const countriesBeginningWithQuery = [];
+        const countriesContainingQuery = [];
+
+        countryNames.forEach((country) => {
+          const normalizedCountry = country.toLocaleLowerCase();
+          if (normalizedCountry.startsWith(normalizedQuery)) {
+            countriesBeginningWithQuery.push(country);
+          } else if (normalizedCountry.includes(normalizedQuery)) {
+            countriesContainingQuery.push(country);
+          }
+        });
+
+        matches = countriesBeginningWithQuery.concat(countriesContainingQuery);
+      } else {
+        matches = countryNames.slice();
+      }
+      activeIndex = -1;
+      listbox.innerHTML = "";
+
+      if (!matches.length) {
+        const empty = document.createElement("p");
+        empty.className = "country-search__empty";
+        empty.textContent = 'No countries found for "' + query.trim() + '"';
+        listbox.appendChild(empty);
+        return;
+      }
+
+      matches.forEach((country, index) => {
+        const option = document.createElement("div");
+        option.className = "country-search__option";
+        option.id = listboxId + "-option-" + index;
+        option.textContent = country;
+        option.setAttribute("role", "option");
+        option.setAttribute("aria-selected", "false");
+        option.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          chooseCountry(country);
+          input.focus();
+        });
+        listbox.appendChild(option);
+      });
+    }
+
+    renderOptions();
+
+    input.addEventListener("focus", () => {
+      renderOptions();
+      setOpen(true);
+      if (input.value) {
+        window.requestAnimationFrame(() => input.select());
+      }
+    });
+
+    input.addEventListener("input", () => {
+      const exactMatch = countryNames.find(
+        (country) => country.toLocaleLowerCase() === input.value.trim().toLocaleLowerCase()
+      );
+      select.value = exactMatch || "";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      input.setCustomValidity(exactMatch || !input.value.trim() ? "" : "Please select a country from the list.");
+      renderOptions(input.value);
+      setOpen(true);
+    });
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        if (!isOpen) {
+          renderOptions(input.value);
+          setOpen(true);
+        }
+        setActive(activeIndex + 1);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        if (!isOpen) {
+          renderOptions(input.value);
+          setOpen(true);
+        }
+        setActive(activeIndex - 1);
+      } else if (event.key === "Enter" && isOpen && activeIndex >= 0) {
+        event.preventDefault();
+        chooseCountry(matches[activeIndex]);
+      } else if (event.key === "Escape") {
+        setOpen(false);
+      }
+    });
+
+    input.addEventListener("blur", () => {
+      window.setTimeout(() => {
+        const exactMatch = countryNames.find(
+          (country) => country.toLocaleLowerCase() === input.value.trim().toLocaleLowerCase()
+        );
+        if (exactMatch) {
+          chooseCountry(exactMatch);
+        } else if (!input.value.trim()) {
+          input.setCustomValidity("Please select a country.");
+        }
+        setOpen(false);
+      }, 120);
+    });
+
+    select.addEventListener("change", () => {
+      if (select.value && input.value !== select.value) {
+        input.value = select.value;
+        input.setCustomValidity("");
+      }
+    });
+
+    wrapper.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    document.addEventListener("click", () => {
+      setOpen(false);
     });
   }
 
