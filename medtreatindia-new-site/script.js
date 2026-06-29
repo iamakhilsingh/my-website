@@ -1184,6 +1184,38 @@
     });
   }
 
+  function setupSocialAppLinks() {
+    const mobileMatcher = window.matchMedia("(hover: none), (pointer: coarse), (max-width: 768px)");
+
+    document.querySelectorAll("[data-social-app-url][data-social-web-url]").forEach((link) => {
+      link.addEventListener("click", (event) => {
+        if (!mobileMatcher.matches) return;
+
+        const appUrl = link.getAttribute("data-social-app-url");
+        const webUrl = link.getAttribute("data-social-web-url") || link.href;
+        if (!appUrl || !webUrl) return;
+
+        event.preventDefault();
+
+        let fallbackTimer = window.setTimeout(() => {
+          window.location.href = webUrl;
+        }, 900);
+
+        const cancelFallback = () => {
+          window.clearTimeout(fallbackTimer);
+          fallbackTimer = null;
+        };
+
+        window.addEventListener("pagehide", cancelFallback, { once: true });
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) cancelFallback();
+        }, { once: true });
+
+        window.location.href = appUrl;
+      });
+    });
+  }
+
   function setupLanguageSelectors() {
     const languages = [
       ["", "Select Language"],
@@ -1471,6 +1503,7 @@
   setupForms();
   setupNavigation();
   setupWhatsAppLinks();
+  setupSocialAppLinks();
   setupFloatingWhatsAppVisibility();
   setupLanguageSelectors();
   setupImageLoading();
