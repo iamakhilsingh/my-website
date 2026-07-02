@@ -1,4 +1,5 @@
 const SHEET_NAME = "Responses";
+const CANONICAL_SITE_ORIGIN = "https://www.medtreatindia.com";
 const MIN_FORM_AGE_MS = 2500;
 const DUPLICATE_WINDOW_SECONDS = 90;
 const ALLOWED_TREATMENTS = {
@@ -21,8 +22,18 @@ const RESPONSE_HEADERS = [
   "Preferred Date",
   "Source Page",
   "City",
-  "Age / DOB"
+  "Age / DOB",
+  "Phone Code",
+  "Local Phone",
+  "Email Status"
 ];
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu("MedTreat Tools")
+    .addItem("Repair existing responses", "repairExistingResponses")
+    .addToUi();
+}
 
 function doPost(e) {
   try {
@@ -32,7 +43,7 @@ function doPost(e) {
 
     const sheet = getResponseSheet();
     ensureHeaders(sheet);
-    const headers = sheet.getRange(1, 1, 1, RESPONSE_HEADERS.length).getValues()[0];
+    const headers = getHeaders(sheet);
     const rowMap = buildRowMap(data);
     const row = headers.map(function (header) {
       return rowMap[header] || "";
@@ -50,6 +61,7 @@ function doPost(e) {
 
     return jsonResponse({ ok: true });
   } catch (error) {
+    console.error(error && error.stack ? error.stack : error);
     return jsonResponse({ ok: false });
   }
 }
@@ -94,7 +106,10 @@ function buildRowMap(data) {
     "Preferred Date": data.date,
     "Source Page": data.sourcePage,
     "City": data.city,
-    "Age / DOB": data.ageOrDob
+    "Age / DOB": data.ageOrDob,
+    "Phone Code": data.phoneCode,
+    "Local Phone": data.localPhone,
+    "Email Status": data.emailStatus
   };
 }
 
@@ -117,9 +132,10 @@ function validatePayload(data) {
     "contactNumber",
     "phone_whatsapp"
   ]);
-  const localPhone = sanitizeText(pickField(data, ["localPhone"]) || phoneValue.replace(/^\+?[0-9]{1,4}[\s-]*/, ""), 30);
+  const suppliedPhoneFull = pickField(data, ["phoneFull", "fullPhone"]);
+  const localPhone = sanitizeText(pickField(data, ["localPhone"]) || phoneValue, 30);
   const phoneFull = sanitizeText(
-    phoneValue || [phoneCode, localPhone].filter(Boolean).join(" "),
+    suppliedPhoneFull || (phoneValue.startsWith("+") ? phoneValue : [phoneCode, localPhone].filter(Boolean).join(" ")),
     40
   );
   const email = sanitizeText(pickField(data, ["email"]), 254).toLowerCase();
@@ -128,7 +144,7 @@ function validatePayload(data) {
   const ageOrDob = sanitizeText(pickField(data, ["ageOrDob", "age", "dob"]), 40);
   const budget = sanitizeText(pickField(data, ["budget"]), 80);
   const date = sanitizeText(pickField(data, ["date"]), 80);
-  const sourcePage = sanitizePath(pickField(data, ["sourcePage"]));
+  const sourcePage = sanitizePath(pickField(data, ["sourcePage", "source"]));
   const website = sanitizeText(pickField(data, ["website"]), 120);
   const consentValue = String(pickField(data, ["consent"]) || "").toLowerCase();
   const consent = consentValue === "true" || consentValue === "on";
@@ -142,7 +158,7 @@ function validatePayload(data) {
   if (phoneCode && !/^\+[0-9]{1,4}$/.test(phoneCode)) throw new Error("Invalid phone code");
   if (localPhone && !/^[0-9+\s()+\-]{4,30}$/.test(localPhone)) throw new Error("Invalid local phone");
   if (!country && !isQuickLead) throw new Error("Invalid country");
-  if (!email && !isQuickLead) throw new Error("Invalid email");
+  if (!email) throw new Error("Invalid email");
   if (email && !isValidEmail(email)) throw new Error("Invalid email");
   if (!ALLOWED_TREATMENTS[treatment]) throw new Error("Invalid treatment");
   if (message && message.length > 1000) throw new Error("Message too long");
@@ -158,6 +174,7 @@ function validatePayload(data) {
     localPhone: asSheetText(localPhone),
     phoneFull: asSheetText(phoneFull),
     email: asSheetText(email),
+    emailStatus: "Valid",
     treatment: asSheetText(treatment),
     message: asSheetText(message),
     ageOrDob: asSheetText(ageOrDob),
@@ -198,19 +215,15 @@ function ensureHeaders(sheet) {
     return;
   }
 
-  const currentWidth = Math.max(sheet.getLastColumn(), RESPONSE_HEADERS.length);
-  const currentHeaders = sheet.getRange(1, 1, 1, currentWidth).getValues()[0];
-  let needsUpdate = currentWidth < RESPONSE_HEADERS.length;
-
-  RESPONSE_HEADERS.forEach(function (header, index) {
-    if (currentHeaders[index] !== header) {
-      currentHeaders[index] = header;
-      needsUpdate = true;
-    }
+  const currentWidth = Math.max(sheet.getLastColumn(), 1);
+  const currentHeaders = sheet.getRange(1, 1, 1, currentWidth).getDisplayValues()[0]
+    .map(function (header) { return String(header || "").trim(); });
+  const missingHeaders = RESPONSE_HEADERS.filter(function (header) {
+    return currentHeaders.indexOf(header) === -1;
   });
 
-  if (needsUpdate) {
-    sheet.getRange(1, 1, 1, RESPONSE_HEADERS.length).setValues([RESPONSE_HEADERS]);
+  if (missingHeaders.length) {
+    sheet.getRange(1, currentHeaders.length + 1, 1, missingHeaders.length).setValues([missingHeaders]);
   }
 }
 
@@ -223,7 +236,7 @@ function sanitizeText(value, maxLength) {
 }
 
 function sanitizePath(value) {
-  return normalizePathValue(value);
+  return canonicalSourceUrl(value);
 }
 
 function pickField(data, keys) {
@@ -240,7 +253,7 @@ function pickField(data, keys) {
 }
 
 function normalizeLegacySourcePath(value) {
-  return normalizePathValue(value);
+  return canonicalSourceUrl(value);
 }
 
 function normalizePathValue(value) {
@@ -290,6 +303,10 @@ function normalizePathValue(value) {
   return "/";
 }
 
+function canonicalSourceUrl(value) {
+  return CANONICAL_SITE_ORIGIN + normalizePathValue(value);
+}
+
 function asSheetText(value) {
   const text = String(value || "").trim();
   if (!text) return "";
@@ -311,7 +328,10 @@ function repairLegacyPhoneErrors() {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
 
-  const phoneRange = sheet.getRange(2, 4, lastRow - 1, 1);
+  const headers = getHeaders(sheet);
+  const phoneColumn = headers.indexOf("Phone / WhatsApp") + 1;
+  if (!phoneColumn) return;
+  const phoneRange = sheet.getRange(2, phoneColumn, lastRow - 1, 1);
   const formulas = phoneRange.getFormulas();
   const values = phoneRange.getDisplayValues().map(function (row, index) {
     const display = String(row[0] || "").trim();
@@ -329,7 +349,7 @@ function repairLegacySourcePages() {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
 
-  const sourceColumn = RESPONSE_HEADERS.indexOf("Source Page") + 1;
+  const sourceColumn = getHeaders(sheet).indexOf("Source Page") + 1;
   if (!sourceColumn) return;
 
   const range = sheet.getRange(2, sourceColumn, lastRow - 1, 1);
@@ -339,6 +359,176 @@ function repairLegacySourcePages() {
 
   range.setNumberFormat("@");
   range.setValues(values);
+}
+
+function repairExistingResponses() {
+  const sheet = getResponseSheet();
+  ensureHeaders(sheet);
+  let tableColumnsUpdated = false;
+  let tableColumnWarning = "";
+  try {
+    tableColumnsUpdated = forceResponseTableTextColumns();
+  } catch (error) {
+    tableColumnWarning = String(error && error.message ? error.message : error);
+    console.warn(tableColumnWarning);
+  }
+  repairLegacyPhoneErrors();
+  repairLegacySourcePages();
+  repairLegacyEmails();
+  populateDerivedColumns();
+
+  const message = tableColumnWarning
+    ? "Rows repaired. Google Table column-type update needs review."
+    : "Responses repaired. Phone, email and source columns are now clean text.";
+  SpreadsheetApp.getActiveSpreadsheet().toast(message, "MedTreat repair", 8);
+  return {
+    ok: !tableColumnWarning,
+    tableColumnsUpdated: tableColumnsUpdated,
+    warning: tableColumnWarning
+  };
+}
+
+function repairLegacyEmails() {
+  const sheet = getResponseSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const headers = getHeaders(sheet);
+  const emailColumn = headers.indexOf("Email") + 1;
+  const statusColumn = headers.indexOf("Email Status") + 1;
+  if (!emailColumn || !statusColumn) return;
+
+  const emailRange = sheet.getRange(2, emailColumn, lastRow - 1, 1);
+  const displayValues = emailRange.getDisplayValues();
+  const rawValues = emailRange.getValues();
+  const normalized = [];
+  const statuses = [];
+
+  displayValues.forEach(function (row, index) {
+    const candidates = [rawValues[index][0], row[0]];
+    let email = "";
+    candidates.some(function (candidate) {
+      const match = String(candidate || "").toLowerCase().match(/[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}/);
+      if (!match) return false;
+      email = match[0];
+      return true;
+    });
+
+    normalized.push([email || sanitizeText(row[0], 254)]);
+    statuses.push([email ? "Valid" : (String(row[0] || "").trim() ? "Needs review" : "Missing")]);
+  });
+
+  emailRange.clearDataValidations().setNumberFormat("@").setValues(normalized);
+  sheet.getRange(2, statusColumn, lastRow - 1, 1).setNumberFormat("@").setValues(statuses);
+}
+
+function populateDerivedColumns() {
+  const sheet = getResponseSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const headers = getHeaders(sheet);
+  const phoneColumn = headers.indexOf("Phone / WhatsApp") + 1;
+  const codeColumn = headers.indexOf("Phone Code") + 1;
+  const localColumn = headers.indexOf("Local Phone") + 1;
+  if (!phoneColumn || !codeColumn || !localColumn) return;
+
+  const phoneValues = sheet.getRange(2, phoneColumn, lastRow - 1, 1).getDisplayValues();
+  const codes = [];
+  const localNumbers = [];
+  phoneValues.forEach(function (row) {
+    const parsed = splitPhoneNumber(row[0]);
+    codes.push([parsed.code]);
+    localNumbers.push([parsed.local]);
+  });
+
+  sheet.getRange(2, codeColumn, lastRow - 1, 1).setNumberFormat("@").setValues(codes);
+  sheet.getRange(2, localColumn, lastRow - 1, 1).setNumberFormat("@").setValues(localNumbers);
+}
+
+function splitPhoneNumber(value) {
+  const text = String(value || "").replace(/^'/, "").trim();
+  const match = text.match(/^(\+[0-9]{1,4})[\s-]*(.*)$/);
+  return {
+    code: match ? match[1] : "",
+    local: match ? match[2] : text
+  };
+}
+
+function getHeaders(sheet) {
+  const width = Math.max(sheet.getLastColumn(), 1);
+  return sheet.getRange(1, 1, 1, width).getDisplayValues()[0]
+    .map(function (header) { return String(header || "").trim(); });
+}
+
+function forceResponseTableTextColumns() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = getResponseSheet();
+  const spreadsheetId = spreadsheet.getId();
+  const apiUrl = "https://sheets.googleapis.com/v4/spreadsheets/" + encodeURIComponent(spreadsheetId);
+  const headers = {
+    Authorization: "Bearer " + ScriptApp.getOAuthToken()
+  };
+  const response = UrlFetchApp.fetch(
+    apiUrl + "?fields=sheets(properties(sheetId),tables(tableId,range,columnProperties))",
+    { headers: headers, muteHttpExceptions: true }
+  );
+
+  if (response.getResponseCode() >= 300) {
+    throw new Error("Could not read Google Table column types: " + response.getContentText());
+  }
+
+  const workbook = JSON.parse(response.getContentText());
+  const sheetResource = (workbook.sheets || []).find(function (item) {
+    return item.properties && item.properties.sheetId === sheet.getSheetId();
+  });
+  if (!sheetResource || !sheetResource.tables || !sheetResource.tables.length) return false;
+
+  const textHeaders = {
+    "Phone / WhatsApp": true,
+    Email: true,
+    "Source Page": true,
+    "Phone Code": true,
+    "Local Phone": true
+  };
+  const requests = [];
+
+  sheetResource.tables.forEach(function (table) {
+    const columnProperties = (table.columnProperties || []).map(function (column) {
+      const updated = {
+        columnIndex: column.columnIndex,
+        columnName: column.columnName,
+        columnType: textHeaders[column.columnName] ? "TEXT" : column.columnType
+      };
+      if (!textHeaders[column.columnName] && column.dataValidationRule) {
+        updated.dataValidationRule = column.dataValidationRule;
+      }
+      return updated;
+    });
+
+    requests.push({
+      updateTable: {
+        table: {
+          tableId: table.tableId,
+          columnProperties: columnProperties
+        },
+        fields: "columnProperties"
+      }
+    });
+  });
+
+  if (!requests.length) return false;
+  const updateResponse = UrlFetchApp.fetch(apiUrl + ":batchUpdate", {
+    method: "post",
+    contentType: "application/json",
+    headers: headers,
+    payload: JSON.stringify({ requests: requests }),
+    muteHttpExceptions: true
+  });
+  if (updateResponse.getResponseCode() >= 300) {
+    throw new Error("Could not change Google Table columns to Text: " + updateResponse.getContentText());
+  }
+  return true;
 }
 
 function recoverPhoneText(displayValue, formulaValue) {

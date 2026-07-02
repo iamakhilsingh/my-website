@@ -25,19 +25,28 @@ After the URL is added, every website form submission will add a new row to the 
 
 If you change `google-sheet-apps-script.js`, paste the updated code into Apps Script again, then deploy a new web app version with access set to "Anyone". The website can send the latest phone fields only after the Apps Script deployment is updated.
 
-The current sheet columns are:
+The script preserves any column order you choose and adds missing columns automatically. The supported columns are:
 
 - Submitted At
 - Name
 - Country
-- Phone Code
-- Local Phone
-- Full Phone / WhatsApp
+- Phone / WhatsApp
 - Email
+- Email Status
 - Treatment
 - Message
 - Budget
 - Preferred Date
 - Source Page
+- City
+- Age / DOB
+- Phone Code
+- Local Phone
 
-If older test rows show `#ERROR` in the phone column, run the `repairLegacyPhoneErrors` function once inside Apps Script. That only repairs the old phone column values that Google Sheets treated as formulas.
+After pasting and authorizing the updated script, reload the Google Sheet and choose **MedTreat Tools > Repair existing responses**. You can also run `repairExistingResponses` once inside Apps Script. It:
+
+- repairs old phone `#ERROR!` cells;
+- changes Phone, Email, and Source Page table columns to plain text;
+- normalizes recoverable email addresses and marks the rest as `Needs review` or `Missing`;
+- replaces bare `/` and local file paths with the matching `https://www.medtreatindia.com/...` source URL;
+- fills the Phone Code and Local Phone columns for older rows.

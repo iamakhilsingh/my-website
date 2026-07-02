@@ -407,6 +407,7 @@
   const defaultMessage =
     "Hello MedTreat India, I would like guidance for treatment options in India.";
   const googleSheetEndpoint = "https://script.google.com/macros/s/AKfycbzGC-vCT-8dA3CzxhRDYMbEfZSSZwQB-ezj-3OleiSdVCFXSoGdGtU0En8waN4DTPEJLA/exec";
+  const canonicalSiteOrigin = "https://www.medtreatindia.com";
   const submissionCooldownMs = 20000;
   const minimumCompletionMs = 2500;
 
@@ -672,9 +673,9 @@
   function safeSourcePage() {
     try {
       const currentUrl = new URL(window.location.href);
-      return normalizeSourcePath(currentUrl.pathname);
+      return canonicalSiteOrigin + normalizeSourcePath(currentUrl.pathname);
     } catch (error) {
-      return normalizeSourcePath(window.location.pathname || "/");
+      return canonicalSiteOrigin + normalizeSourcePath(window.location.pathname || "/");
     }
   }
 
@@ -1000,7 +1001,7 @@
       '    <label class="field-label-hidden"><span>Country</span><select name="country" data-country-select required><option value="India" selected>India</option></select></label>',
       '    <label class="field-label-hidden"><span>City</span><input name="city" autocomplete="address-level2" maxlength="80" placeholder="City" required /></label>',
       '    <label class="field-label-hidden phone-field"><span>Your Phone number</span><input name="phone" autocomplete="tel-national" placeholder="Your Phone number" required /></label>',
-      '    <label class="field-label-hidden"><span>Email Address</span><input name="email" type="email" autocomplete="email" maxlength="254" placeholder="Email Address" /></label>',
+      '    <label class="field-label-hidden"><span>Email Address</span><input name="email" type="email" autocomplete="email" maxlength="254" placeholder="Email Address" required /></label>',
       '    <label class="field-label-hidden"><span>Date of Birth</span><input name="ageOrDob" autocomplete="bday" maxlength="40" placeholder="Date of Birth (DD-MM-YYYY)" /></label>',
       '    <label class="field-label-hidden"><span>Describe The Current Medical Problem</span><textarea name="message" rows="3" maxlength="1000" placeholder="Describe The Current Medical Problem"></textarea></label>',
       '    <input class="form-honeypot" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />',
