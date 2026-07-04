@@ -21,6 +21,18 @@ const googleSheetEndpoint = "";
 
 After the URL is added, every website form submission will add a new row to the `Responses` sheet.
 
+## Automatic confirmation email
+
+Each valid, non-duplicate form submission also sends an immediate confirmation to the email address entered in the form.
+
+- The email is sent from `support@medtreatindia.com`.
+- Sign in as `support@medtreatindia.com` when authorizing and deploying the Apps Script web app.
+- Approve the Gmail permission requested by Apps Script.
+- Keep **Execute as** set to **Me** so the message is sent from the support mailbox.
+- If the script is deployed from another Google Workspace account, `support@medtreatindia.com` must first be configured as an approved Gmail sending alias for that account.
+
+After adding or updating the email code, create a new web app deployment version and submit a test enquiry using an email address you can check. Confirm the response is saved in the sheet, the confirmation arrives, and the sender is `support@medtreatindia.com`.
+
 ## After updating this file later
 
 If you change `google-sheet-apps-script.js`, paste the updated code into Apps Script again, then deploy a new web app version with access set to "Anyone". The website can send the latest phone fields only after the Apps Script deployment is updated.

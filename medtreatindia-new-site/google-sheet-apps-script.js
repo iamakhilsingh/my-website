@@ -1,5 +1,8 @@
 const SHEET_NAME = "Responses";
 const CANONICAL_SITE_ORIGIN = "https://www.medtreatindia.com";
+const CONFIRMATION_SENDER_EMAIL = "support@medtreatindia.com";
+const CONFIRMATION_SENDER_NAME = "MedTreat India";
+const CONFIRMATION_SUBJECT = "We received your MedTreat India enquiry";
 const MIN_FORM_AGE_MS = 2500;
 const DUPLICATE_WINDOW_SECONDS = 90;
 const ALLOWED_TREATMENTS = {
@@ -59,6 +62,12 @@ function doPost(e) {
       lock.releaseLock();
     }
 
+    try {
+      sendFormConfirmationEmail(data);
+    } catch (emailError) {
+      console.error("Confirmation email failed: " + (emailError && emailError.stack ? emailError.stack : emailError));
+    }
+
     return jsonResponse({ ok: true });
   } catch (error) {
     console.error(error && error.stack ? error.stack : error);
@@ -111,6 +120,86 @@ function buildRowMap(data) {
     "Local Phone": data.localPhone,
     "Email Status": data.emailStatus
   };
+}
+
+function sendFormConfirmationEmail(data) {
+  const patientName = plainTextValue(data.name) || "there";
+  const treatment = plainTextValue(data.treatment);
+  const treatmentSentence = treatment
+    ? "We have received your enquiry about " + treatment + "."
+    : "We have received your enquiry.";
+  const plainBody = [
+    "Hello " + patientName + ",",
+    "",
+    "Thank you for contacting MedTreat India.",
+    treatmentSentence,
+    "",
+    "Our patient support team will review your enquiry and contact you soon.",
+    "You can reply directly to this email if you would like to add any information.",
+    "",
+    "Regards,",
+    "MedTreat India Patient Support",
+    "support@medtreatindia.com",
+    "https://www.medtreatindia.com"
+  ].join("\n");
+  const htmlBody = [
+    '<div style="background:#f4f7f6;padding:24px 12px;font-family:Arial,sans-serif;color:#17352d;">',
+    '  <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #dfe9e5;border-radius:12px;overflow:hidden;">',
+    '    <div style="background:#0b6b57;padding:22px 28px;color:#ffffff;">',
+    '      <div style="font-size:22px;font-weight:700;">MedTreat India</div>',
+    '      <div style="font-size:14px;margin-top:4px;">Patient-first medical travel guidance</div>',
+    "    </div>",
+    '    <div style="padding:28px;font-size:16px;line-height:1.6;">',
+    "      <p>Hello " + escapeHtml(patientName) + ",</p>",
+    "      <p>Thank you for contacting MedTreat India.</p>",
+    "      <p>" + escapeHtml(treatmentSentence) + "</p>",
+    "      <p>Our patient support team will review your enquiry and contact you soon.</p>",
+    "      <p>You can reply directly to this email if you would like to add any information.</p>",
+    "      <p style=\"margin-top:26px;\">Regards,<br><strong>MedTreat India Patient Support</strong><br>",
+    '      <a href="mailto:support@medtreatindia.com" style="color:#0b6b57;">support@medtreatindia.com</a></p>',
+    "    </div>",
+    "  </div>",
+    "</div>"
+  ].join("");
+  const options = {
+    htmlBody: htmlBody,
+    name: CONFIRMATION_SENDER_NAME,
+    replyTo: CONFIRMATION_SENDER_EMAIL
+  };
+  const effectiveSender = String(Session.getEffectiveUser().getEmail() || "").toLowerCase();
+  const senderAliases = GmailApp.getAliases().map(function (alias) {
+    return String(alias || "").toLowerCase();
+  });
+
+  if (effectiveSender !== CONFIRMATION_SENDER_EMAIL) {
+    if (senderAliases.indexOf(CONFIRMATION_SENDER_EMAIL) === -1) {
+      throw new Error(
+        "Deploy this web app as " + CONFIRMATION_SENDER_EMAIL +
+        " or configure that address as a Gmail sending alias."
+      );
+    }
+    options.from = CONFIRMATION_SENDER_EMAIL;
+  }
+
+  GmailApp.sendEmail(
+    plainTextValue(data.email),
+    CONFIRMATION_SUBJECT,
+    plainBody,
+    options
+  );
+}
+
+function plainTextValue(value) {
+  return String(value || "").replace(/^'/, "").trim();
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function validatePayload(data) {
