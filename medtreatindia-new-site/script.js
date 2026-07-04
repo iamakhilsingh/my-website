@@ -1,9 +1,6 @@
 (function () {
   "use strict";
 
-  let leadPopupElement = null;
-  let leadPopupTimer = null;
-
   const countryNames = [
     "Afghanistan",
     "Albania",
@@ -956,85 +953,6 @@
     if (consentInput) validateConsentInput(consentInput);
   }
 
-  function closeLeadPopup(persist = false) {
-    if (!leadPopupElement) return;
-    leadPopupElement.classList.remove("is-open");
-    leadPopupElement.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("lead-popup-open");
-    window.setTimeout(() => {
-      if (leadPopupElement) leadPopupElement.hidden = true;
-    }, 240);
-  }
-
-  function openLeadPopup() {
-    if (!leadPopupElement || leadPopupElement.hidden === false) return;
-    leadPopupElement.hidden = false;
-    leadPopupElement.setAttribute("aria-hidden", "false");
-    document.body.classList.add("lead-popup-open");
-    window.requestAnimationFrame(() => {
-      leadPopupElement?.classList.add("is-open");
-    });
-
-    const focusTarget = leadPopupElement.querySelector("input:not([type='hidden']), select, textarea, button");
-    if (focusTarget) {
-      window.setTimeout(() => focusTarget.focus({ preventScroll: true }), 40);
-    }
-  }
-
-  function setupLeadPopup() {
-    if (normalizeSourcePath(window.location.pathname || "/") !== "/") return;
-
-    const popup = document.createElement("section");
-    popup.className = "lead-popup";
-    popup.hidden = true;
-    popup.setAttribute("aria-hidden", "true");
-    popup.innerHTML = [
-      '<div class="lead-popup__backdrop" data-lead-popup-close></div>',
-      '<div class="lead-popup__panel quote-form-card" role="dialog" aria-modal="true" aria-labelledby="lead-popup-title">',
-      '  <button class="lead-popup__close" type="button" aria-label="Close popup" data-lead-popup-close>&times;</button>',
-      '  <h2 id="lead-popup-title">Let Us Help You</h2>',
-      '  <form class="consult-form lead-popup__form" data-consult-form data-form-variant="popup">',
-      '    <input name="leadType" type="hidden" value="popup" />',
-      '    <input name="treatment" type="hidden" value="Other" />',
-      '    <input name="consent" type="hidden" value="true" />',
-      '    <label class="field-label-hidden"><span>Patient Name</span><input name="name" autocomplete="name" maxlength="120" placeholder="Patient Name" required /></label>',
-      '    <label class="field-label-hidden"><span>Country</span><select name="country" data-country-select required><option value="India" selected>India</option></select></label>',
-      '    <label class="field-label-hidden"><span>City</span><input name="city" autocomplete="address-level2" maxlength="80" placeholder="City" required /></label>',
-      '    <label class="field-label-hidden phone-field"><span>Your Phone number</span><input name="phone" autocomplete="tel-national" placeholder="Your Phone number" required /></label>',
-      '    <label class="field-label-hidden"><span>Email Address</span><input name="email" type="email" autocomplete="email" maxlength="254" placeholder="Email Address" required /></label>',
-      '    <label class="field-label-hidden"><span>Date of Birth</span><input name="ageOrDob" autocomplete="bday" maxlength="40" placeholder="Date of Birth (DD-MM-YYYY)" /></label>',
-      '    <label class="field-label-hidden"><span>Describe The Current Medical Problem</span><textarea name="message" rows="3" maxlength="1000" placeholder="Describe The Current Medical Problem"></textarea></label>',
-      '    <input class="form-honeypot" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />',
-      '    <input name="startedAt" type="hidden" value="" />',
-      '    <button class="btn btn-primary btn-full" type="submit">Get FREE Quote</button>',
-      '    <p class="form-legal">By submitting this form I agree to the <a class="text-link" href="terms-and-conditions.html">Terms of Use</a> and <a class="text-link" href="privacy-policy.html">Privacy Policy</a> of MedTreat India.</p>',
-      "  </form>",
-      "</div>"
-    ].join("");
-
-    popup.addEventListener("click", (event) => {
-      if (event.target.matches("[data-lead-popup-close]")) {
-        closeLeadPopup(true);
-      }
-    });
-
-    document.body.appendChild(popup);
-    leadPopupElement = popup;
-
-    populateCountries();
-    setupFormValidation(popup.querySelector("[data-consult-form]"));
-
-    leadPopupTimer = window.setTimeout(() => {
-      openLeadPopup();
-    }, 3000);
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && leadPopupElement && leadPopupElement.classList.contains("is-open")) {
-        closeLeadPopup(true);
-      }
-    });
-  }
-
   function setupFormValidation(form) {
     ensurePhoneCodeField(form);
     ensureSecurityFields(form);
@@ -1122,9 +1040,6 @@
         submitToGoogleSheetInBackground(submission);
         setFormStatus(form, "Opening WhatsApp with your enquiry details...", "success");
 
-        if (form.closest("[data-form-variant='popup']")) {
-          closeLeadPopup(true);
-        }
         openPreparedWhatsApp(targetUrl);
       });
     });
@@ -1526,7 +1441,6 @@
 
   setupThemeToggle();
   populateCountries();
-  setupLeadPopup();
   setupForms();
   setupNavigation();
   setupWhatsAppLinks();

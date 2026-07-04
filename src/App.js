@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React, { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   HeartPulse,
   ShieldCheck,
@@ -14,7 +14,6 @@ import {
   ChevronRight,
   MessageCircle,
   Menu,
-  X,
   CalendarDays,
   FileText,
   Building2,
@@ -171,28 +170,6 @@ function ConsultationForm({ compact = false }) {
   );
 }
 
-function Popup() {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    if (sessionStorage.getItem("mti_popup_closed")) return;
-    const t = setTimeout(() => setOpen(true), 3000);
-    return () => clearTimeout(t);
-  }, []);
-  const close = () => { sessionStorage.setItem("mti_popup_closed", "1"); setOpen(false); };
-  return (
-    <AnimatePresence>
-      {open && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-[#132033]/70 p-4 backdrop-blur-sm">
-        <motion.div initial={{ y: 24, scale: 0.96 }} animate={{ y: 0, scale: 1 }} exit={{ y: 24, scale: 0.96 }} className="relative w-full max-w-xl rounded-[2rem] bg-white p-7 shadow-2xl">
-          <button onClick={close} className="absolute right-5 top-5 rounded-full bg-slate-100 p-2 text-slate-500"><X size={18} /></button>
-          <div className="mb-5 pr-10"><h3 className="text-3xl font-black text-[#132033]">Get a Free Medical Opinion</h3><p className="mt-2 text-slate-500">Share your treatment requirement and our medical coordinator will contact you within 24 hours.</p></div>
-          <ConsultationForm compact />
-          <a href={waLink()} target="_blank" className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#009B7D] px-5 py-3.5 text-sm font-bold text-[#009B7D]"><MessageCircle size={18} /> Chat on WhatsApp</a>
-        </motion.div>
-      </motion.div>}
-    </AnimatePresence>
-  );
-}
-
 function Header() {
   const [menu, setMenu] = useState(false);
   const links = ["Home", "About", "Treatments", "How It Works", "Hospitals", "Testimonials", "Contact"];
@@ -282,5 +259,5 @@ export default function MedTreatIndiaWebsite() {
     meta.setAttribute("content", "MedTreatIndia helps international patients access affordable, high-quality medical treatment in India with hospital coordination, visa assistance, travel support, and free consultation.");
     document.head.appendChild(meta);
   }, []);
-  return <div className="min-h-screen scroll-smooth bg-white font-sans text-slate-900"><Header /><Hero /><About /><Treatments /><HowItWorks /><Hospitals /><Testimonials /><FAQ /><Contact /><Footer /><Popup /><a href={waLink()} target="_blank" className="fixed bottom-6 right-6 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-[#25D366] text-white shadow-2xl"><MessageCircle size={32} /></a></div>;
+  return <div className="min-h-screen scroll-smooth bg-white font-sans text-slate-900"><Header /><Hero /><About /><Treatments /><HowItWorks /><Hospitals /><Testimonials /><FAQ /><Contact /><Footer /><a href={waLink()} target="_blank" className="fixed bottom-6 right-6 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-[#25D366] text-white shadow-2xl"><MessageCircle size={32} /></a></div>;
 }
