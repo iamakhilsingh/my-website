@@ -2235,6 +2235,14 @@ input[aria-invalid="true"] {
     display: flex;
     align-items: center;
   }
+
+  @supports (content-visibility: auto) {
+    .section,
+    .site-footer {
+      content-visibility: auto;
+      contain-intrinsic-size: 720px;
+    }
+  }
 }
 
 @media (max-width: 700px) {
@@ -2457,6 +2465,10 @@ input[aria-invalid="true"] {
     margin-top: 14px;
   }
 
+  .hero-social-links {
+    display: none;
+  }
+
   .hero-controls .language-widget {
     max-width: 150px;
   }
@@ -2484,6 +2496,25 @@ input[aria-invalid="true"] {
   .journey-card {
     padding: 18px 16px;
     border-radius: 14px;
+  }
+
+  .site-header,
+  .hero-controls,
+  .language-widget,
+  .theme-toggle,
+  .hero-home .journey-card,
+  .hero-trust span {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .journey-card,
+  .content-card,
+  .mini-card-grid article,
+  .treatment-directory article,
+  .story-card,
+  .security-card {
+    box-shadow: 0 10px 24px rgba(17,45,78,.08);
   }
 
   .journey-card h2 {

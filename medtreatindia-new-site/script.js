@@ -408,6 +408,17 @@
   const submissionCooldownMs = 20000;
   const minimumCompletionMs = 2500;
 
+  function prefersLeanMobileExperience() {
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const saveData = Boolean(connection && connection.saveData);
+    const slowConnection = Boolean(connection && /(^|-)2g$/.test(connection.effectiveType || ""));
+    const lowMemory = typeof navigator.deviceMemory === "number" && navigator.deviceMemory <= 3;
+    const narrowPhone = window.matchMedia("(max-width: 430px)").matches;
+    const coarsePhone = window.matchMedia("(max-width: 700px), (pointer: coarse)").matches;
+
+    return coarsePhone && (narrowPhone || saveData || slowConnection || lowMemory);
+  }
+
   function whatsappUrl(message) {
     return "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message || defaultMessage);
   }
@@ -1255,6 +1266,7 @@
 
       function start() {
         stop();
+        if (prefersLeanMobileExperience()) return;
         timer = window.setInterval(() => goToCard(index + 1), slideDelay);
       }
 
@@ -1308,6 +1320,11 @@
   }
 
   function setupZoomReveal() {
+    if (prefersLeanMobileExperience()) {
+      document.body.classList.add("lean-mobile-experience");
+      return;
+    }
+
     const selectors = [
       ".hero-copy > *",
       ".journey-card",
