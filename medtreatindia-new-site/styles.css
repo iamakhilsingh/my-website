@@ -88,10 +88,10 @@ button, input, select, textarea { font: inherit; }
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 22px;
+  gap: 16px;
 }
 .brand {
-  width: 226px;
+  width: 210px;
   height: 54px;
   display: flex;
   align-items: center;
@@ -108,10 +108,32 @@ button, input, select, textarea { font: inherit; }
   object-position: left center;
   content: url("assets/brand/medtreatindia-logo-wordmark-transparent.png");
 }
-.site-nav { display: flex; justify-content: center; gap: 24px; font-size: .92rem; font-weight: 800; color: #263142; }
-.site-nav a { padding: 8px 0; }
+.site-nav {
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  color: #263142;
+  font-size: .9rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.site-nav a {
+  flex: 0 0 auto;
+  padding: 8px 0;
+  white-space: nowrap;
+}
 .site-nav a:hover, .site-nav a[aria-current="page"] { color: var(--blue); }
-.nav-actions { display: flex; align-items: center; gap: 10px; }
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.nav-actions .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 .nav-toggle { display: none; width: 44px; height: 44px; border: 1px solid var(--line); background: #fff; border-radius: 8px; flex-direction: column; gap: 5px; align-items: center; justify-content: center; }
 .nav-toggle span {
   width: 20px;
@@ -234,7 +256,7 @@ button, input, select, textarea { font: inherit; }
   background: linear-gradient(135deg, #3b73dd 0%, #2f63c7 100%);
   box-shadow: 0 18px 34px rgba(47,99,199,.38), inset 0 1px 0 rgba(255,255,255,.34);
 }
-.btn-small { min-height: 40px; padding: 10px 15px; }
+.btn-small { min-height: 40px; padding: 10px 13px; }
 .btn-full { width: 100%; }
 .text-link { color: var(--blue); font-weight: 900; }
 
@@ -2049,7 +2071,7 @@ input[aria-invalid="true"] {
   }
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1220px) {
   [data-zoom-reveal] {
     opacity: 1;
     transform: none;
@@ -2747,7 +2769,7 @@ input[aria-invalid="true"] {
 
 }
 
-@media (prefers-color-scheme: dark) and (max-width: 1080px) {
+@media (prefers-color-scheme: dark) and (max-width: 1220px) {
   .site-nav.is-open {
     background: rgba(15,23,42,.98);
     border-color: rgba(148,163,184,.24);
