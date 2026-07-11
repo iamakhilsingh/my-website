@@ -1,4 +1,12 @@
-# Getting Started with Create React App
+# MedTreat India — Website
+
+The source for the MedTreat India website, a single-page React application. It is built with [React 19](https://react.dev/), styled with [Tailwind CSS](https://tailwindcss.com/), and animated with [Framer Motion](https://www.framer.com/motion/).
+
+> Note: `npm run build` uses a custom static-site build script (`scripts/build-static-site.js`) rather than the default Create React App build.
+
+---
+
+## Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
