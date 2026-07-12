@@ -967,6 +967,9 @@ input[aria-invalid="true"] {
 }
 .mini-card-grid p, .treatment-directory p, .story-card p, .security-card p { color: var(--muted); font-size: .94rem; }
 .mini-card-grid a, .treatment-directory a { color: var(--blue); font-weight: 900; }
+/* When a mini-card-grid sits inside a narrow half-width content-card,
+   4 columns squeeze the text to one word per line. Use a 2x2 grid instead. */
+.content-card .mini-card-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
 .treatments-hero {
   position: relative;
   overflow: hidden;
