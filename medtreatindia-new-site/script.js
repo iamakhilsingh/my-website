@@ -828,6 +828,11 @@
   }
 
   function openPreparedWhatsApp(url) {
+    if (window.matchMedia("(min-width: 1221px)").matches) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+
     window.location.href = url;
   }
 
