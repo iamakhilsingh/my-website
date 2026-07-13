@@ -2,7 +2,7 @@ const SHEET_NAME = "Responses";
 const CANONICAL_SITE_ORIGIN = "https://www.medtreatindia.com";
 const CONFIRMATION_SENDER_EMAIL = "support@medtreatindia.com";
 const CONFIRMATION_SENDER_NAME = "MedTreat India";
-const CONFIRMATION_SUBJECT = "We received your MedTreat India enquiry";
+const CONFIRMATION_SUBJECT = "Your enquiry has been received | MedTreat India";
 const MIN_FORM_AGE_MS = 2500;
 const DUPLICATE_WINDOW_SECONDS = 90;
 const ALLOWED_TREATMENTS = {
@@ -131,10 +131,10 @@ function sendFormConfirmationEmail(data) {
   const plainBody = [
     "Hello " + patientName + ",",
     "",
-    "Thank you for contacting MedTreat India.",
+    "Thank you for submitting your enquiry to MedTreat India.",
     treatmentSentence,
     "",
-    "Our patient support team will review your enquiry and contact you soon.",
+    "Our patient support team will review the information you provided and contact you within 24 hours with the next steps.",
     "You can reply directly to this email if you would like to add any information.",
     "",
     "Regards,",
@@ -151,9 +151,9 @@ function sendFormConfirmationEmail(data) {
     "    </div>",
     '    <div style="padding:28px;font-size:16px;line-height:1.6;">',
     "      <p>Hello " + escapeHtml(patientName) + ",</p>",
-    "      <p>Thank you for contacting MedTreat India.</p>",
+    "      <p>Thank you for submitting your enquiry to MedTreat India.</p>",
     "      <p>" + escapeHtml(treatmentSentence) + "</p>",
-    "      <p>Our patient support team will review your enquiry and contact you soon.</p>",
+    "      <p>Our patient support team will review the information you provided and contact you within <strong>24 hours</strong> with the next steps.</p>",
     "      <p>You can reply directly to this email if you would like to add any information.</p>",
     "      <p style=\"margin-top:26px;\">Regards,<br><strong>MedTreat India Patient Support</strong><br>",
     '      <a href="mailto:support@medtreatindia.com" style="color:#0b6b57;">support@medtreatindia.com</a></p>',
