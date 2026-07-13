@@ -967,6 +967,9 @@ input[aria-invalid="true"] {
 }
 .mini-card-grid p, .treatment-directory p, .story-card p, .security-card p { color: var(--muted); font-size: .94rem; }
 .mini-card-grid a, .treatment-directory a { color: var(--blue); font-weight: 900; }
+/* When a mini-card-grid sits inside a narrow half-width content-card,
+   4 columns squeeze the text to one word per line. Use a 2x2 grid instead. */
+.content-card .mini-card-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
 .treatments-hero {
   position: relative;
   overflow: hidden;
@@ -2595,6 +2598,11 @@ input[aria-invalid="true"] {
     -webkit-backdrop-filter: none;
   }
 
+  /* Match the single-column mobile layout even when the grid is nested. */
+  .content-card .mini-card-grid {
+    grid-template-columns: 1fr;
+  }
+
   .journey-card,
   .content-card,
   .mini-card-grid article,
@@ -3353,3 +3361,14 @@ input[aria-invalid="true"] {
     animation: none;
   }
 }
+
+/* Cost comparison table (treatment pages) — additive, uses existing tokens only */
+.cost-table-wrap { overflow-x: auto; margin: 24px 0 8px; -webkit-overflow-scrolling: touch; }
+.cost-table { width: 100%; border-collapse: collapse; font-size: .98rem; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.cost-table caption { caption-side: bottom; text-align: left; color: var(--muted); font-size: .82rem; line-height: 1.5; padding: 12px 4px 0; }
+.cost-table th, .cost-table td { padding: 13px 16px; text-align: left; border-bottom: 1px solid var(--line); color: var(--ink); }
+.cost-table thead th { background: var(--navy); color: #fff; font-weight: 700; border-bottom: 0; white-space: nowrap; }
+.cost-table tbody tr:last-child td { border-bottom: 0; }
+.cost-table td:first-child { font-weight: 600; }
+.cost-table .price-in { color: var(--green); font-weight: 700; white-space: nowrap; }
+.cost-table .price-out { color: var(--muted); white-space: nowrap; }
