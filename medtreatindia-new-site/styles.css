@@ -2598,6 +2598,11 @@ input[aria-invalid="true"] {
     -webkit-backdrop-filter: none;
   }
 
+  /* Match the single-column mobile layout even when the grid is nested. */
+  .content-card .mini-card-grid {
+    grid-template-columns: 1fr;
+  }
+
   .journey-card,
   .content-card,
   .mini-card-grid article,
