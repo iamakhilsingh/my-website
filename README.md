@@ -21,6 +21,6 @@ The generated `build/` folder is intentionally excluded from Git because Vercel 
 
 ## Enquiry confirmation emails
 
-The Google Apps Script backend validates each submitted email address, saves the enquiry to the `Responses` sheet, and sends the patient a confirmation email. The message is sent as `support@medtreatindia.com` only when the Apps Script deployment runs under that Google account or the address is configured as a Gmail sending alias.
+The Google Apps Script backend validates each submitted email address, saves the enquiry to the `Responses` sheet, and emails the patient a copy of their submitted details. It sends from the Google account that owns the Apps Script deployment and uses `support@medtreatindia.com` as the reply-to address. If `support@medtreatindia.com` is configured as a Gmail sending alias, it is also used as the sender.
 
 After changing `medtreatindia-new-site/google-sheet-apps-script.js`, update the code in the linked Google Sheet's Apps Script project and deploy a new web-app version. Keep the existing web-app URL so the endpoint in `script.js` continues to work.

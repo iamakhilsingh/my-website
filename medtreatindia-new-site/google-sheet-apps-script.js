@@ -128,11 +128,25 @@ function sendFormConfirmationEmail(data) {
   const treatmentSentence = treatment
     ? "We have received your enquiry about " + treatment + "."
     : "We have received your enquiry.";
+  const responseRows = formResponseRows(data);
+  const responseText = responseRows.map(function (row) {
+    return row.label + ": " + row.value;
+  }).join("\n");
+  const responseHtml = responseRows.map(function (row) {
+    return '<tr>' +
+      '<td style="padding:9px 12px;border-bottom:1px solid #e6eeeb;font-weight:700;vertical-align:top;width:34%;">' + escapeHtml(row.label) + '</td>' +
+      '<td style="padding:9px 12px;border-bottom:1px solid #e6eeeb;vertical-align:top;white-space:pre-wrap;">' + escapeHtml(row.value) + '</td>' +
+      '</tr>';
+  }).join("");
   const plainBody = [
     "Hello " + patientName + ",",
     "",
     "Thank you for submitting your enquiry to MedTreat India.",
     treatmentSentence,
+    "",
+    "Here is a copy of the information you submitted:",
+    "",
+    responseText,
     "",
     "Our patient support team will review the information you provided and contact you within 24 hours with the next steps.",
     "You can reply directly to this email if you would like to add any information.",
@@ -153,6 +167,8 @@ function sendFormConfirmationEmail(data) {
     "      <p>Hello " + escapeHtml(patientName) + ",</p>",
     "      <p>Thank you for submitting your enquiry to MedTreat India.</p>",
     "      <p>" + escapeHtml(treatmentSentence) + "</p>",
+    "      <p><strong>Here is a copy of the information you submitted:</strong></p>",
+    '      <table role="presentation" style="width:100%;border-collapse:collapse;background:#f8fbfa;border:1px solid #e6eeeb;border-radius:8px;">' + responseHtml + '</table>',
     "      <p>Our patient support team will review the information you provided and contact you within <strong>24 hours</strong> with the next steps.</p>",
     "      <p>You can reply directly to this email if you would like to add any information.</p>",
     "      <p style=\"margin-top:26px;\">Regards,<br><strong>MedTreat India Patient Support</strong><br>",
@@ -166,18 +182,11 @@ function sendFormConfirmationEmail(data) {
     name: CONFIRMATION_SENDER_NAME,
     replyTo: CONFIRMATION_SENDER_EMAIL
   };
-  const effectiveSender = String(Session.getEffectiveUser().getEmail() || "").toLowerCase();
   const senderAliases = GmailApp.getAliases().map(function (alias) {
     return String(alias || "").toLowerCase();
   });
 
-  if (effectiveSender !== CONFIRMATION_SENDER_EMAIL) {
-    if (senderAliases.indexOf(CONFIRMATION_SENDER_EMAIL) === -1) {
-      throw new Error(
-        "Deploy this web app as " + CONFIRMATION_SENDER_EMAIL +
-        " or configure that address as a Gmail sending alias."
-      );
-    }
+  if (senderAliases.indexOf(CONFIRMATION_SENDER_EMAIL) !== -1) {
     options.from = CONFIRMATION_SENDER_EMAIL;
   }
 
@@ -187,6 +196,27 @@ function sendFormConfirmationEmail(data) {
     plainBody,
     options
   );
+}
+
+function formResponseRows(data) {
+  const fields = [
+    ["Name", data.name],
+    ["Country", data.country],
+    ["City", data.city],
+    ["Phone / WhatsApp", data.phoneFull || data.phone],
+    ["Email", data.email],
+    ["Date of Birth / Age", data.ageOrDob],
+    ["Treatment", data.treatment],
+    ["Medical problem", data.message],
+    ["Budget", data.budget],
+    ["Preferred date", data.date]
+  ];
+
+  return fields.map(function (field) {
+    return { label: field[0], value: plainTextValue(field[1]) };
+  }).filter(function (field) {
+    return Boolean(field.value);
+  });
 }
 
 function plainTextValue(value) {
