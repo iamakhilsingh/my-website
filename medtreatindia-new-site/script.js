@@ -747,7 +747,6 @@
     if (submission.ageOrDob) lines.push("Age / DOB: " + submission.ageOrDob);
     if (submission.budget) lines.push("Budget: " + submission.budget);
     if (submission.date) lines.push("Preferred Date: " + submission.date);
-    if (submission.sourcePage) lines.push("Source: " + submission.sourcePage);
     return lines.join("\n");
   }
 
