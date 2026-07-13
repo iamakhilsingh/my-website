@@ -719,13 +719,39 @@
       email: formValue(data, ["email"]),
       treatment: formValue(data, ["treatment"]),
       message: formValue(data, ["message"]),
-      ageOrDob: formValue(data, ["ageOrDob", "age", "dob"]),
+      ageOrDob: formatDateOfBirth(formValue(data, ["ageOrDob", "age", "dob"])),
       budget: formValue(data, ["budget"]),
       date: formValue(data, ["date"]),
       consent: formValue(data, ["consent"]),
       website: formValue(data, ["website"]),
       startedAt: formValue(data, ["startedAt"])
     };
+  }
+
+  function formatDateOfBirth(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    return match ? [match[3], match[2], match[1]].join("-") : value;
+  }
+
+  function setupDateOfBirthPickers() {
+    const today = new Date();
+    const maxDate = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0")
+    ].join("-");
+
+    document.querySelectorAll(".dob-field").forEach((input) => {
+      input.max = maxDate;
+      input.addEventListener("click", () => {
+        if (typeof input.showPicker !== "function") return;
+        try {
+          input.showPicker();
+        } catch (error) {
+          // The browser still provides its native date control when showPicker is unavailable.
+        }
+      });
+    });
   }
 
   function formMessage(submission) {
@@ -1461,6 +1487,7 @@
   }
 
   setupThemeToggle();
+  setupDateOfBirthPickers();
   populateCountries();
   setupForms();
   setupNavigation();
