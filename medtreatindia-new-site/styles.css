@@ -1015,6 +1015,13 @@ input[aria-invalid="true"] {
   border-color: rgba(47,99,199,.32);
   box-shadow: 0 28px 58px rgba(17,45,78,.14);
 }
+.treatment-preview .treatment-card {
+  cursor: pointer;
+}
+.treatment-preview .treatment-card:focus-within {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
 .treatment-card-media {
   position: relative;
   overflow: hidden;
@@ -1097,6 +1104,12 @@ input[aria-invalid="true"] {
 .treatment-cta:hover {
   background: var(--blue);
   color: #fff;
+}
+.treatment-preview .treatment-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
 }
 
 .value-strip-section { position: relative; }
