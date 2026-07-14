@@ -400,7 +400,7 @@
     "Zimbabwe": "+263"
   };
 
-  const whatsappNumber = ["91", "783", "824", "7423"].join("");
+  const whatsappNumber = ["91", "880", "024", "9490"].join("");
   const defaultMessage =
     "Hello MedTreat India, I would like guidance for treatment options in India.";
   const googleSheetEndpoint = "https://script.google.com/macros/s/AKfycbzGC-vCT-8dA3CzxhRDYMbEfZSSZwQB-ezj-3OleiSdVCFXSoGdGtU0En8waN4DTPEJLA/exec";
