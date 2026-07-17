@@ -84,17 +84,24 @@ button, input, select, textarea { font: inherit; }
   backdrop-filter: blur(14px);
 }
 .nav-shell {
-  min-height: 74px;
+  min-height: 116px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: 16px;
+  column-gap: 24px;
+  row-gap: 6px;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 .brand {
   width: 210px;
   height: 54px;
   display: flex;
   align-items: center;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: center;
   border: 1px solid rgba(17,45,78,.1);
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(245,249,255,.82));
@@ -111,7 +118,9 @@ button, input, select, textarea { font: inherit; }
 .site-nav {
   min-width: 0;
   display: flex;
-  justify-content: center;
+  grid-column: 1;
+  grid-row: 2;
+  justify-content: flex-start;
   gap: 16px;
   color: #263142;
   font-size: .9rem;
@@ -126,7 +135,10 @@ button, input, select, textarea { font: inherit; }
 .site-nav a:hover, .site-nav a[aria-current="page"] { color: var(--blue); }
 .nav-actions {
   display: flex;
+  grid-column: 2;
+  grid-row: 2;
   align-items: center;
+  justify-self: end;
   gap: 10px;
   white-space: nowrap;
 }
@@ -2107,10 +2119,22 @@ input[aria-invalid="true"] {
 
   .nav-shell {
     min-height: 68px;
-    grid-template-columns: minmax(0, auto) auto;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    grid-template-rows: auto;
     gap: 12px;
+    padding-top: 7px;
+    padding-bottom: 7px;
   }
-  .nav-toggle { display: flex; justify-self: end; }
+  .brand {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .nav-toggle {
+    display: flex;
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+  }
   .site-nav, .nav-actions { display: none; }
   .site-nav.is-open {
     position: absolute;
