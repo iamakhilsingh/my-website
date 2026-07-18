@@ -34,6 +34,42 @@ const pages = fs
   .filter((file) => file.endsWith(".html"))
   .sort();
 
+function decodeHtml(value) {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ");
+}
+
+function textFromMatch(html, pattern) {
+  const match = html.match(pattern);
+  return match ? decodeHtml(match[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()) : "";
+}
+
+const searchIndex = pages.map((page) => {
+  const html = fs.readFileSync(path.join(output, page), "utf8");
+  const title = textFromMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i)
+    .replace(/\s*[|–-]\s*MedTreat India.*$/i, "")
+    .trim();
+  const description = textFromMatch(
+    html,
+    /<meta\s+name="description"\s+content="([^"]*)"[^>]*>/i
+  );
+  const heading = textFromMatch(html, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
+
+  return {
+    title: title || heading || "MedTreat India",
+    description,
+    url: page === "index.html" ? "index.html" : page,
+    keywords: [title, heading, description, page.replace(/[-.]/g, " ")].filter(Boolean).join(" ")
+  };
+});
+
+fs.writeFileSync(path.join(output, "search-index.json"), JSON.stringify(searchIndex));
+
 const sitemap = [
   '<?xml version="1.0" encoding="UTF-8"?>',
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',

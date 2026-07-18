@@ -1119,6 +1119,166 @@
     });
   }
 
+  function setupSiteSearch() {
+    const desktopActions = document.querySelector(".nav-actions");
+    const mobileNav = document.querySelector("[data-nav]");
+    if (!desktopActions || !mobileNav) return;
+
+    const searchIcon = [
+      '<svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">',
+      '<circle cx="11" cy="11" r="6.5"></circle>',
+      '<path d="m16 16 4 4"></path>',
+      "</svg>"
+    ].join("");
+
+    const desktopButton = document.createElement("button");
+    desktopButton.className = "site-search-button";
+    desktopButton.type = "button";
+    desktopButton.setAttribute("aria-label", "Search MedTreat India");
+    desktopButton.title = "Search";
+    desktopButton.innerHTML = searchIcon + '<span class="site-search-button__label">Search</span>';
+    desktopActions.prepend(desktopButton);
+
+    const mobileButton = document.createElement("button");
+    mobileButton.className = "site-search-mobile";
+    mobileButton.type = "button";
+    mobileButton.innerHTML = searchIcon + "<span>Search</span>";
+    mobileNav.appendChild(mobileButton);
+
+    const dialog = document.createElement("div");
+    dialog.className = "site-search";
+    dialog.hidden = true;
+    dialog.innerHTML = [
+      '<div class="site-search__backdrop" data-search-close></div>',
+      '<section class="site-search__dialog" role="dialog" aria-modal="true" aria-labelledby="site-search-title">',
+      '<div class="site-search__topline">',
+      '<div><p class="eyebrow">Find care information</p><h2 id="site-search-title">Search MedTreat India</h2></div>',
+      '<button class="site-search__close" type="button" aria-label="Close search" data-search-close>&times;</button>',
+      "</div>",
+      '<label class="site-search__field">',
+      '<span class="sr-only">Search treatments, hospitals and patient guides</span>',
+      searchIcon,
+      '<input type="search" inputmode="search" autocomplete="off" placeholder="Try “heart surgery” or “knee replacement”" data-search-input />',
+      "</label>",
+      '<p class="site-search__hint">Search treatments, hospitals, patient support and articles.</p>',
+      '<div class="site-search__results" data-search-results aria-live="polite"></div>',
+      "</section>"
+    ].join("");
+    document.body.appendChild(dialog);
+
+    const input = dialog.querySelector("[data-search-input]");
+    const results = dialog.querySelector("[data-search-results]");
+    let searchIndex = [];
+    let indexRequest;
+    let lastFocusedElement = null;
+
+    function escapeHtml(value) {
+      const element = document.createElement("span");
+      element.textContent = value;
+      return element.innerHTML;
+    }
+
+    function loadIndex() {
+      if (searchIndex.length) return Promise.resolve(searchIndex);
+      if (!indexRequest) {
+        indexRequest = fetch("search-index.json", { credentials: "same-origin" })
+          .then((response) => {
+            if (!response.ok) throw new Error("Search index unavailable");
+            return response.json();
+          })
+          .then((data) => {
+            searchIndex = Array.isArray(data) ? data : [];
+            return searchIndex;
+          });
+      }
+      return indexRequest;
+    }
+
+    function scorePage(page, terms) {
+      const title = page.title.toLowerCase();
+      const text = (page.keywords || page.title + " " + page.description).toLowerCase();
+      if (!terms.every((term) => text.includes(term))) return 0;
+      return terms.reduce((score, term) => {
+        if (title === term) return score + 12;
+        if (title.startsWith(term)) return score + 8;
+        if (title.includes(term)) return score + 5;
+        return score + 1;
+      }, 0);
+    }
+
+    function renderResults() {
+      const query = input.value.trim().toLowerCase();
+      if (query.length < 2) {
+        results.innerHTML = "";
+        return;
+      }
+
+      const terms = query.split(/\s+/).filter(Boolean);
+      const matches = searchIndex
+        .map((page) => ({ page, score: scorePage(page, terms) }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score || a.page.title.localeCompare(b.page.title))
+        .slice(0, 10);
+
+      if (!matches.length) {
+        results.innerHTML = '<p class="site-search__empty">No matching pages found. Try a treatment name, hospital, or procedure.</p>';
+        return;
+      }
+
+      results.innerHTML = [
+        '<p class="site-search__count">' + matches.length + (matches.length === 1 ? " result" : " results") + "</p>",
+        '<div class="site-search__result-list">',
+        matches.map(({ page }) => [
+          '<a class="site-search__result" href="' + encodeURI(page.url) + '">',
+          "<strong>" + escapeHtml(page.title) + "</strong>",
+          page.description ? "<span>" + escapeHtml(page.description) + "</span>" : "",
+          "</a>"
+        ].join("")).join(""),
+        "</div>"
+      ].join("");
+    }
+
+    function openSearch() {
+      lastFocusedElement = document.activeElement;
+      dialog.hidden = false;
+      document.body.classList.add("search-open");
+      document.body.classList.remove("nav-open");
+      mobileNav.classList.remove("is-open");
+      const navToggle = document.querySelector("[data-nav-toggle]");
+      navToggle?.setAttribute("aria-expanded", "false");
+      navToggle?.setAttribute("aria-label", "Open navigation");
+      loadIndex()
+        .then(() => {
+          renderResults();
+          input.focus();
+        })
+        .catch(() => {
+          results.innerHTML = '<p class="site-search__empty">Search is temporarily unavailable. Please try again.</p>';
+          input.focus();
+        });
+    }
+
+    function closeSearch() {
+      dialog.hidden = true;
+      document.body.classList.remove("search-open");
+      if (lastFocusedElement) lastFocusedElement.focus();
+    }
+
+    desktopButton.addEventListener("click", openSearch);
+    mobileButton.addEventListener("click", openSearch);
+    input.addEventListener("input", renderResults);
+    dialog.querySelectorAll("[data-search-close]").forEach((button) => {
+      button.addEventListener("click", closeSearch);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !dialog.hidden) closeSearch();
+      if (event.key === "/" && dialog.hidden && !event.target.matches("input, textarea, select")) {
+        event.preventDefault();
+        openSearch();
+      }
+    });
+  }
+
   function setupImageLoading() {
     document.querySelectorAll("img").forEach((image) => {
       image.decoding = "async";
@@ -1491,6 +1651,7 @@
   populateCountries();
   setupForms();
   setupNavigation();
+  setupSiteSearch();
   setupWhatsAppLinks();
   setupFooterSocialLinks();
   setupSocialAppLinks();
