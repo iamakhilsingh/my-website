@@ -68,6 +68,25 @@ const searchIndex = pages.map((page) => {
   };
 });
 
+const hospitalsHtml = fs.readFileSync(path.join(output, "hospitals.html"), "utf8");
+const hospitalSlider = hospitalsHtml.match(/<div class="hospital-slider"[^>]*>([\s\S]*?)<\/div>/i);
+if (hospitalSlider) {
+  const hospitalPattern = /<article[^>]*>[\s\S]*?<h3[^>]*>([\s\S]*?)<\/h3>\s*<p[^>]*>([\s\S]*?)<\/p>[\s\S]*?<\/article>/gi;
+  let hospitalMatch;
+
+  while ((hospitalMatch = hospitalPattern.exec(hospitalSlider[1]))) {
+    const hospitalName = decodeHtml(hospitalMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+    const location = decodeHtml(hospitalMatch[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+
+    searchIndex.push({
+      title: hospitalName,
+      description: `${location} hospital featured by MedTreat India.`,
+      url: "hospitals.html",
+      keywords: `${hospitalName} ${hospitalName.replace(/Hospitals?|Healthcare/gi, "")} hospital hospitals ${location}`
+    });
+  }
+}
+
 fs.writeFileSync(path.join(output, "search-index.json"), JSON.stringify(searchIndex));
 
 const sitemap = [
