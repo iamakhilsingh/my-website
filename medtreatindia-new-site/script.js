@@ -1509,69 +1509,6 @@
     });
   }
 
-  function setupZoomReveal() {
-    if (prefersLeanMobileExperience()) {
-      document.body.classList.add("lean-mobile-experience");
-      return;
-    }
-
-    const selectors = [
-      ".hero-copy > *",
-      ".journey-card",
-      ".consult-form > *",
-      ".hero-actions > *",
-      ".section-head",
-      ".section > .container > *",
-      ".mini-card-grid article",
-      ".steps-row article",
-      ".hospital-showcase",
-      ".logo-marquee",
-      ".testimonial-feature-card",
-      ".testimonial-grid article",
-      ".story-options a",
-      ".treatment-directory article",
-      ".security-card",
-      ".content-card",
-      ".image-card",
-      ".cta-band h2",
-      ".cta-band p",
-      ".cta-band .hero-actions > *",
-      ".footer-grid > *",
-      ".footer-bottom",
-      ".floating-wa"
-    ];
-    const elements = Array.from(document.querySelectorAll(selectors.join(","))).filter((element) => {
-      return !element.closest("[data-zoom-reveal]") &&
-        !element.matches(".site-header, .site-header *, .blog-article-body");
-    });
-
-    document.body.classList.add("zoom-reveal-ready");
-
-    elements.forEach((element, index) => {
-      element.setAttribute("data-zoom-reveal", "");
-      element.classList.add("zoom-delay-" + Math.min(index % 6, 5));
-    });
-
-    if (!("IntersectionObserver" in window)) {
-      elements.forEach((element) => element.classList.add("is-zoom-visible"));
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-zoom-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" }
-    );
-
-    elements.forEach((element) => observer.observe(element));
-  }
-
   function setupThemeToggle() {
     const toggle = document.querySelector("[data-theme-toggle]");
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -1660,5 +1597,4 @@
   setupImageLoading();
   setupHospitalSliders();
   setupTestimonialVideos();
-  setupZoomReveal();
 })();
