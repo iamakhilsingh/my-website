@@ -1119,6 +1119,88 @@
     });
   }
 
+  function setupDoctorsNavigation() {
+    document.querySelectorAll("[data-nav]").forEach((nav) => {
+      if (nav.querySelector('a[href="doctors.html"]')) return;
+      const hospitalsLink = nav.querySelector('a[href="hospitals.html"]');
+      if (!hospitalsLink) return;
+      const doctorsLink = document.createElement("a");
+      doctorsLink.href = "doctors.html";
+      doctorsLink.textContent = "Doctors";
+      hospitalsLink.insertAdjacentElement("afterend", doctorsLink);
+    });
+
+    document.querySelectorAll(".site-footer .footer-grid > div").forEach((column) => {
+      const heading = column.querySelector("h2");
+      if (!heading || heading.textContent.trim() !== "Quick Links") return;
+      if (column.querySelector('a[href="doctors.html"]')) return;
+      const hospitalsLink = column.querySelector('a[href="hospitals.html"]');
+      const doctorsLink = document.createElement("a");
+      doctorsLink.href = "doctors.html";
+      doctorsLink.textContent = "Doctors";
+      if (hospitalsLink) hospitalsLink.insertAdjacentElement("afterend", doctorsLink);
+      else column.appendChild(doctorsLink);
+    });
+  }
+
+  function setupDoctorReels() {
+    const buttons = document.querySelectorAll("[data-reel-url]");
+    if (!buttons.length) return;
+
+    const modal = document.createElement("div");
+    modal.className = "doctor-reel-modal";
+    modal.hidden = true;
+    modal.innerHTML = [
+      '<div class="doctor-reel-backdrop" data-reel-close></div>',
+      '<section class="doctor-reel-dialog" role="dialog" aria-modal="true" aria-labelledby="doctor-reel-title">',
+      '<div class="doctor-reel-topline">',
+      '<div><p class="eyebrow">Doctor introduction</p><h2 id="doctor-reel-title"></h2></div>',
+      '<button class="doctor-reel-close" type="button" aria-label="Close doctor video" data-reel-close>&times;</button>',
+      "</div>",
+      '<div class="doctor-reel-frame"><iframe title="Doctor introduction video" loading="eager" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>',
+      '<p class="doctor-reel-fallback">If the video does not load, <a target="_blank" rel="noopener noreferrer">watch it on Instagram</a>.</p>',
+      "</section>"
+    ].join("");
+    document.body.appendChild(modal);
+
+    const title = modal.querySelector("#doctor-reel-title");
+    const frame = modal.querySelector("iframe");
+    const fallback = modal.querySelector(".doctor-reel-fallback a");
+    let lastFocused = null;
+
+    function closeReel() {
+      if (modal.hidden) return;
+      modal.hidden = true;
+      document.body.classList.remove("reel-open");
+      frame.src = "about:blank";
+      if (lastFocused) lastFocused.focus();
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const reelUrl = button.dataset.reelUrl;
+        const doctorName = button.dataset.doctorName || "Doctor video";
+        const embedUrl = reelUrl.replace(/\/$/, "") + "/embed/";
+        lastFocused = button;
+        title.textContent = doctorName;
+        frame.title = doctorName + " introduction video";
+        frame.src = embedUrl;
+        fallback.href = reelUrl;
+        modal.hidden = false;
+        document.body.classList.add("reel-open");
+        modal.querySelector(".doctor-reel-close").focus();
+      });
+    });
+
+    modal.querySelectorAll("[data-reel-close]").forEach((closeButton) => {
+      closeButton.addEventListener("click", closeReel);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeReel();
+    });
+  }
+
   function setupSiteSearch() {
     const desktopActions = document.querySelector(".nav-actions");
     const mobileNav = document.querySelector("[data-nav]");
@@ -1587,7 +1669,9 @@
   setupDateOfBirthPickers();
   populateCountries();
   setupForms();
+  setupDoctorsNavigation();
   setupNavigation();
+  setupDoctorReels();
   setupSiteSearch();
   setupWhatsAppLinks();
   setupFooterSocialLinks();

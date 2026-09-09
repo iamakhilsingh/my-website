@@ -6,6 +6,10 @@ Each image was prompted as original, natural editorial healthcare photography fe
 
 Shared constraints across the prompt set: no text, logos, watermarks, flags, maps, brand marks, hospital signage, identifiable real people, graphic procedures, exposed anatomy, or medical distress. Each treatment uses a separately generated scene and a distinct source file.
 
+## Doctor profile images
+
+The nine images in `assets/doctors/` are the original reel cover thumbnails from the MedTreat India Instagram account. They correspond to the doctor profile and introduction videos linked from `doctors.html` and were added on 9 September 2026.
+
 ## Final prompt set
 
 Every image used the `photorealistic-natural` use case, a horizontal 3:2 treatment-card composition, natural editorial healthcare photography, realistic Indian people and contemporary Indian care environments, medically plausible interactions, and a center-crop-safe focal point.
