@@ -1121,6 +1121,7 @@
 
   function setupDoctorsNavigation() {
     document.querySelectorAll("[data-nav]").forEach((nav) => {
+      nav.querySelectorAll('a[href="process.html"]').forEach((link) => link.remove());
       if (nav.querySelector('a[href="doctors.html"]')) return;
       const hospitalsLink = nav.querySelector('a[href="hospitals.html"]');
       if (!hospitalsLink) return;

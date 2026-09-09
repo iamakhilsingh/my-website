@@ -60,11 +60,11 @@ button, input, select, textarea { font: inherit; }
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 .brand {
-  width: 210px;
-  height: 54px;
+  width: 196px;
+  height: 52px;
   display: flex;
   align-items: center;
   border: 1px solid rgba(17,45,78,.1);
@@ -84,9 +84,9 @@ button, input, select, textarea { font: inherit; }
   min-width: 0;
   display: flex;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
   color: #263142;
-  font-size: .9rem;
+  font-size: .82rem;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -99,12 +99,14 @@ button, input, select, textarea { font: inherit; }
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   white-space: nowrap;
 }
 .nav-actions .btn {
   flex: 0 0 auto;
   white-space: nowrap;
+  padding: 10px 14px;
+  font-size: .8rem;
 }
 .site-search-button {
   min-height: 40px;
@@ -3766,15 +3768,55 @@ body.reel-open { overflow: hidden; }
 .doctor-reel-fallback { margin: 0; padding: 10px 18px 13px; color: var(--muted); font-size: .82rem; text-align: center; }
 .doctor-reel-fallback a { color: var(--blue); font-weight: 900; }
 
+.home-doctors-section { background: var(--mist); }
+.home-doctors-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 28px;
+  text-align: left;
+}
+.home-doctors-heading > div { max-width: 720px; }
+.home-doctors-heading > div > p:last-child { margin-bottom: 0; }
+.home-doctors-heading .btn { flex: 0 0 auto; margin-bottom: 5px; }
+.home-doctors-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+}
+.home-doctor-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(17,45,78,.08);
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.home-doctor-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(47,99,199,.28);
+  box-shadow: 0 22px 44px rgba(17,45,78,.13);
+}
+.home-doctor-card .doctor-reel-button { aspect-ratio: 4 / 4.7; }
+.home-doctor-info { padding: 19px; }
+.home-doctor-info h3 { margin: 0 0 7px; color: var(--navy); font-size: 1.15rem; line-height: 1.3; }
+.home-doctor-info .doctor-specialty { font-size: .9rem; }
+.home-doctor-info .doctor-hospital { margin-bottom: 0; font-size: .88rem; }
+
 @media (max-width: 980px) {
   .doctors-hero-layout { grid-template-columns: 1fr; gap: 28px; }
   .doctors-hero-note { max-width: 620px; }
   .doctors-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-doctors-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .doctor-guidance-card { grid-template-columns: 1fr; gap: 24px; }
   .doctor-guidance-actions { justify-content: flex-start; }
 }
 
 @media (max-width: 620px) {
+  .home-doctors-heading { align-items: flex-start; flex-direction: column; gap: 18px; }
+  .home-doctors-heading .btn { width: 100%; }
+  .home-doctors-grid { grid-template-columns: 1fr; gap: 22px; }
   .doctors-section-head { align-items: flex-start; flex-direction: column; gap: 8px; }
   .doctors-grid { grid-template-columns: 1fr; gap: 22px; }
   .doctor-card-body { min-height: 0; }
@@ -3789,6 +3831,7 @@ body.reel-open { overflow: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   .doctor-card,
+  .home-doctor-card,
   .doctor-reel-button img { transition: none; }
 }
 
@@ -3800,10 +3843,13 @@ body.reel-open { overflow: hidden; }
 }
 :root[data-theme="dark"] .doctors-hero-note,
 :root[data-theme="dark"] .doctor-card,
+:root[data-theme="dark"] .home-doctor-card,
 :root[data-theme="dark"] .doctor-reel-dialog { background: #0f172a; border-color: rgba(148,163,184,.2); }
 :root[data-theme="dark"] .doctors-hero-note strong,
-:root[data-theme="dark"] .doctor-card h3 { color: #f4f7fb; }
+:root[data-theme="dark"] .doctor-card h3,
+:root[data-theme="dark"] .home-doctor-info h3 { color: #f4f7fb; }
 :root[data-theme="dark"] .doctors-directory-section { background: #070d19; }
 :root[data-theme="dark"] .doctor-specialty { color: #8fb6ff; }
 :root[data-theme="dark"] .doctor-guidance-section { background: #0b1220; }
+:root[data-theme="dark"] .home-doctors-section { background: #0b1220; }
 :root[data-theme="light"] .doctors-directory-section { background: #fff; }
