@@ -3803,6 +3803,22 @@ body.reel-open { overflow: hidden; }
 .home-doctor-info h3 { margin: 0 0 7px; color: var(--navy); font-size: 1.15rem; line-height: 1.3; }
 .home-doctor-info .doctor-specialty { font-size: .9rem; }
 .home-doctor-info .doctor-hospital { margin-bottom: 0; font-size: .88rem; }
+.treatment-doctors-section { border-top: 1px solid var(--line); }
+.treatment-doctors-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 28px;
+  text-align: left;
+}
+.treatment-doctors-heading > div { max-width: 760px; }
+.treatment-doctors-heading .btn { flex: 0 0 auto; margin-bottom: 5px; }
+.treatment-doctors-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 340px));
+  gap: 24px;
+}
+.treatment-doctors-grid .home-doctor-card { width: 100%; }
 
 @media (max-width: 980px) {
   .doctors-hero-layout { grid-template-columns: 1fr; gap: 28px; }
@@ -3817,6 +3833,9 @@ body.reel-open { overflow: hidden; }
   .home-doctors-heading { align-items: flex-start; flex-direction: column; gap: 18px; }
   .home-doctors-heading .btn { width: 100%; }
   .home-doctors-grid { grid-template-columns: 1fr; gap: 22px; }
+  .treatment-doctors-heading { align-items: flex-start; flex-direction: column; gap: 18px; }
+  .treatment-doctors-heading .btn { width: 100%; }
+  .treatment-doctors-grid { grid-template-columns: 1fr; }
   .doctors-section-head { align-items: flex-start; flex-direction: column; gap: 8px; }
   .doctors-grid { grid-template-columns: 1fr; gap: 22px; }
   .doctor-card-body { min-height: 0; }
