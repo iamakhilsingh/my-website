@@ -1069,6 +1069,7 @@ input[aria-invalid="true"] {
   transform: scale(1.01);
   transition: transform 520ms ease;
 }
+.doctor-led-treatment-card .treatment-card-media img { object-position: center 20%; }
 .treatment-card:hover .treatment-card-media img {
   transform: scale(1.06);
 }
@@ -3713,7 +3714,13 @@ body.search-open { overflow: hidden; }
 .doctor-specialty { margin: 0; color: var(--blue-dark); font-weight: 900; line-height: 1.45; }
 .doctor-hospital { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 18px; color: var(--muted); line-height: 1.5; }
 .doctor-hospital span { color: var(--green); font-weight: 900; }
-.doctor-instagram-link { width: fit-content; margin-top: auto; color: var(--blue); font-size: .88rem; font-weight: 900; }
+.doctor-treatment-link,
+.home-doctor-treatment-link { width: fit-content; color: var(--blue); font-size: .88rem; font-weight: 900; }
+.doctor-treatment-link { margin-top: auto; }
+.home-doctor-treatment-link { display: inline-flex; margin-top: 14px; }
+.doctor-treatment-link:hover,
+.home-doctor-treatment-link:hover { color: var(--blue-dark); text-decoration: underline; text-underline-offset: 3px; }
+.doctor-instagram-link { width: fit-content; margin-top: 10px; color: var(--blue); font-size: .88rem; font-weight: 900; }
 .doctor-instagram-link:hover { color: var(--blue-dark); text-decoration: underline; text-underline-offset: 3px; }
 .doctor-guidance-section { background: var(--mist); }
 .doctor-guidance-card {
