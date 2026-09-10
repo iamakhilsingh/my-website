@@ -3839,7 +3839,32 @@ body.reel-open { overflow: hidden; }
 @media (max-width: 620px) {
   .home-doctors-heading { align-items: flex-start; flex-direction: column; gap: 18px; }
   .home-doctors-heading .btn { width: 100%; }
-  .home-doctors-grid { grid-template-columns: 1fr; gap: 22px; }
+  .home-doctors-grid { grid-template-columns: 1fr; gap: 14px; }
+  .home-doctor-card {
+    display: grid;
+    grid-template-columns: minmax(112px, 32%) minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .home-doctor-card .doctor-reel-button {
+    height: 100%;
+    min-height: 210px;
+    aspect-ratio: auto;
+  }
+  .home-doctor-card .doctor-play {
+    left: 50%;
+    bottom: 12px;
+    gap: 0;
+    font-size: 0;
+    transform: translateX(-50%);
+  }
+  .home-doctor-card .doctor-play > span { width: 34px; height: 34px; font-size: .78rem; }
+  .home-doctor-info { min-width: 0; padding: 15px; }
+  .home-doctor-info h3 { font-size: 1.03rem; }
+  .home-doctor-info .doctor-specialty,
+  .home-doctor-info .doctor-hospital,
+  .home-doctor-treatment-link { font-size: .8rem; line-height: 1.4; }
+  .home-doctor-info .doctor-hospital { margin-top: 9px; }
+  .home-doctor-treatment-link { margin-top: 10px; }
   .treatment-doctors-heading { align-items: flex-start; flex-direction: column; gap: 18px; }
   .treatment-doctors-heading .btn { width: 100%; }
   .treatment-doctors-grid { grid-template-columns: 1fr; }
@@ -3853,6 +3878,16 @@ body.reel-open { overflow: hidden; }
   .doctor-reel-dialog { max-height: calc(100vh - 20px); border-radius: 14px; }
   .doctor-reel-frame iframe { height: calc(100vh - 155px); }
   .doctor-reel-fallback { display: none; }
+}
+
+@media (max-width: 390px) {
+  .home-doctor-card { grid-template-columns: 102px minmax(0, 1fr); }
+  .home-doctor-card .doctor-reel-button { min-height: 200px; }
+  .home-doctor-info { padding: 13px; }
+  .home-doctor-info h3 { font-size: .98rem; }
+  .home-doctor-info .doctor-specialty,
+  .home-doctor-info .doctor-hospital,
+  .home-doctor-treatment-link { font-size: .76rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
