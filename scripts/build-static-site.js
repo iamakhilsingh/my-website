@@ -49,6 +49,20 @@ function textFromMatch(html, pattern) {
   return match ? decodeHtml(match[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()) : "";
 }
 
+function searchablePageContent(html) {
+  const main = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+  if (!main) return "";
+
+  return decodeHtml(
+    main[1]
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+}
+
 const searchIndex = pages.map((page) => {
   const html = fs.readFileSync(path.join(output, page), "utf8");
   const title = textFromMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i)
@@ -64,7 +78,8 @@ const searchIndex = pages.map((page) => {
     title: title || heading || "MedTreat India",
     description,
     url: page === "index.html" ? "index.html" : page,
-    keywords: [title, heading, description, page.replace(/[-.]/g, " ")].filter(Boolean).join(" ")
+    keywords: [title, heading, description, page.replace(/[-.]/g, " ")].filter(Boolean).join(" "),
+    content: searchablePageContent(html)
   };
 });
 
@@ -82,9 +97,31 @@ if (hospitalSlider) {
       title: hospitalName,
       description: `${location} hospital featured by MedTreat India.`,
       url: "hospitals.html",
-      keywords: `${hospitalName} ${hospitalName.replace(/Hospitals?|Healthcare/gi, "")} hospital hospitals ${location}`
+      keywords: `${hospitalName} ${hospitalName.replace(/Hospitals?|Healthcare/gi, "")} hospital hospitals ${location}`,
+      content: `${hospitalName} ${location}`
     });
   }
+}
+
+const doctorsHtml = fs.readFileSync(path.join(output, "doctors.html"), "utf8");
+const doctorPattern = /<article[^>]*class="[^"]*doctor-card[^"]*"[^>]*>[\s\S]*?<div class="doctor-card-body"><h3>([\s\S]*?)<\/h3><p class="doctor-specialty">([\s\S]*?)<\/p><p class="doctor-hospital">([\s\S]*?)<\/p>[\s\S]*?<\/article>/gi;
+const indexedDoctors = new Set();
+let doctorMatch;
+
+while ((doctorMatch = doctorPattern.exec(doctorsHtml))) {
+  const doctorName = decodeHtml(doctorMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+  if (indexedDoctors.has(doctorName)) continue;
+
+  const specialty = decodeHtml(doctorMatch[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+  const hospital = decodeHtml(doctorMatch[3].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).replace(/^✚\s*/, "");
+  indexedDoctors.add(doctorName);
+  searchIndex.push({
+    title: doctorName,
+    description: `${specialty} at ${hospital}. View this doctor’s profile and introduction.`,
+    url: "doctors.html",
+    keywords: `${doctorName} doctor specialist ${specialty} ${hospital}`,
+    content: `${doctorName} ${specialty} ${hospital}`
+  });
 }
 
 fs.writeFileSync(path.join(output, "search-index.json"), JSON.stringify(searchIndex));

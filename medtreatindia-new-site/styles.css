@@ -130,7 +130,7 @@ button, input, select, textarea { font: inherit; }
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(17,45,78,.1);
 }
-.site-search-button__label { display: none; }
+.site-search-button__label { display: inline; }
 .site-search-button svg,
 .site-search-mobile svg,
 .site-search__field svg {
@@ -1977,6 +1977,15 @@ body.search-open { overflow: hidden; }
   padding: 0 16px;
   color: var(--blue);
 }
+.site-search__form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+.site-search__submit {
+  min-width: 100px;
+  min-height: 56px;
+}
 .site-search__field:focus-within {
   border-color: var(--blue);
   box-shadow: 0 0 0 4px rgba(47,99,199,.1);
@@ -2726,6 +2735,8 @@ body.search-open { overflow: hidden; }
     border-radius: 14px;
     padding: 18px;
   }
+  .site-search__form { grid-template-columns: 1fr; }
+  .site-search__submit { min-height: 50px; }
   .site-search__hint { line-height: 1.45; }
 
   :root { --container: min(100% - 24px, 1200px); }

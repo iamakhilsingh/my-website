@@ -1218,6 +1218,8 @@
     desktopButton.className = "site-search-button";
     desktopButton.type = "button";
     desktopButton.setAttribute("aria-label", "Search MedTreat India");
+    desktopButton.setAttribute("aria-controls", "site-search-dialog");
+    desktopButton.setAttribute("aria-expanded", "false");
     desktopButton.title = "Search";
     desktopButton.innerHTML = searchIcon + '<span class="site-search-button__label">Search</span>';
     desktopActions.prepend(desktopButton);
@@ -1225,11 +1227,14 @@
     const mobileButton = document.createElement("button");
     mobileButton.className = "site-search-mobile";
     mobileButton.type = "button";
+    mobileButton.setAttribute("aria-controls", "site-search-dialog");
+    mobileButton.setAttribute("aria-expanded", "false");
     mobileButton.innerHTML = searchIcon + "<span>Search</span>";
     mobileNav.appendChild(mobileButton);
 
     const dialog = document.createElement("div");
     dialog.className = "site-search";
+    dialog.id = "site-search-dialog";
     dialog.hidden = true;
     dialog.innerHTML = [
       '<div class="site-search__backdrop" data-search-close></div>',
@@ -1238,22 +1243,27 @@
       '<div><p class="eyebrow">Find care information</p><h2 id="site-search-title">Search MedTreat India</h2></div>',
       '<button class="site-search__close" type="button" aria-label="Close search" data-search-close>&times;</button>',
       "</div>",
+      '<form class="site-search__form" role="search" data-search-form>',
       '<label class="site-search__field">',
-      '<span class="sr-only">Search treatments, hospitals and patient guides</span>',
+      '<span class="sr-only">Search treatments, hospitals, doctors and patient guides</span>',
       searchIcon,
-      '<input type="search" inputmode="search" autocomplete="off" placeholder="Try “heart surgery” or “knee replacement”" data-search-input />',
+      '<input type="search" inputmode="search" autocomplete="off" placeholder="Try “heart surgery” or a doctor’s name" aria-controls="site-search-results" aria-describedby="site-search-hint" data-search-input />',
       "</label>",
-      '<p class="site-search__hint">Search treatments, hospitals, patient support and articles.</p>',
-      '<div class="site-search__results" data-search-results aria-live="polite"></div>',
+      '<button class="btn btn-primary site-search__submit" type="submit">Search</button>',
+      "</form>",
+      '<p class="site-search__hint" id="site-search-hint">Results appear as you type. Press Enter to open the best match.</p>',
+      '<div class="site-search__results" id="site-search-results" data-search-results aria-live="polite"></div>',
       "</section>"
     ].join("");
     document.body.appendChild(dialog);
 
     const input = dialog.querySelector("[data-search-input]");
+    const form = dialog.querySelector("[data-search-form]");
     const results = dialog.querySelector("[data-search-results]");
     let searchIndex = [];
     let indexRequest;
     let lastFocusedElement = null;
+    let currentMatches = [];
 
     function escapeHtml(value) {
       const element = document.createElement("span");
@@ -1272,46 +1282,72 @@
           .then((data) => {
             searchIndex = Array.isArray(data) ? data : [];
             return searchIndex;
+          })
+          .catch((error) => {
+            indexRequest = null;
+            throw error;
           });
       }
       return indexRequest;
     }
 
-    function scorePage(page, terms) {
-      const title = page.title.toLowerCase();
-      const text = (page.keywords || page.title + " " + page.description).toLowerCase();
-      if (!terms.every((term) => text.includes(term))) return 0;
-      return terms.reduce((score, term) => {
-        if (title === term) return score + 12;
-        if (title.startsWith(term)) return score + 8;
-        if (title.includes(term)) return score + 5;
-        return score + 1;
-      }, 0);
+    function normalizeSearchText(value) {
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    }
+
+    function scorePage(page, query, terms) {
+      const title = normalizeSearchText(page.title);
+      const description = normalizeSearchText(page.description);
+      const keywords = normalizeSearchText(page.keywords);
+      const content = normalizeSearchText(page.content);
+      const combined = [title, description, keywords, content].join(" ");
+      if (!terms.every((term) => combined.includes(term))) return 0;
+
+      let score = 0;
+      if (title === query) score += 100;
+      else if (title.startsWith(query)) score += 60;
+      else if (title.includes(query)) score += 40;
+      if (keywords.includes(query)) score += 24;
+      if (description.includes(query)) score += 16;
+
+      return terms.reduce((total, term) => {
+        if (title.startsWith(term)) return total + 12;
+        if (title.includes(term)) return total + 8;
+        if (description.includes(term)) return total + 4;
+        if (keywords.includes(term)) return total + 3;
+        return total + 1;
+      }, score);
     }
 
     function renderResults() {
-      const query = input.value.trim().toLowerCase();
+      const query = normalizeSearchText(input.value);
       if (query.length < 2) {
-        results.innerHTML = "";
-        return;
+        currentMatches = [];
+        results.innerHTML = '<p class="site-search__empty">Type at least 2 characters to search the website.</p>';
+        return currentMatches;
       }
 
       const terms = query.split(/\s+/).filter(Boolean);
-      const matches = searchIndex
-        .map((page) => ({ page, score: scorePage(page, terms) }))
+      currentMatches = searchIndex
+        .map((page) => ({ page, score: scorePage(page, query, terms) }))
         .filter((item) => item.score > 0)
         .sort((a, b) => b.score - a.score || a.page.title.localeCompare(b.page.title))
         .slice(0, 10);
 
-      if (!matches.length) {
-        results.innerHTML = '<p class="site-search__empty">No matching pages found. Try a treatment name, hospital, or procedure.</p>';
-        return;
+      if (!currentMatches.length) {
+        results.innerHTML = '<p class="site-search__empty">No matching pages found. Try a treatment, hospital, doctor, or procedure.</p>';
+        return currentMatches;
       }
 
       results.innerHTML = [
-        '<p class="site-search__count">' + matches.length + (matches.length === 1 ? " result" : " results") + "</p>",
+        '<p class="site-search__count">' + currentMatches.length + (currentMatches.length === 1 ? " result" : " results") + "</p>",
         '<div class="site-search__result-list">',
-        matches.map(({ page }) => [
+        currentMatches.map(({ page }) => [
           '<a class="site-search__result" href="' + encodeURI(page.url) + '">',
           "<strong>" + escapeHtml(page.title) + "</strong>",
           page.description ? "<span>" + escapeHtml(page.description) + "</span>" : "",
@@ -1319,43 +1355,91 @@
         ].join("")).join(""),
         "</div>"
       ].join("");
+      return currentMatches;
     }
 
     function openSearch() {
       lastFocusedElement = document.activeElement;
       dialog.hidden = false;
       document.body.classList.add("search-open");
+      desktopButton.setAttribute("aria-expanded", "true");
+      mobileButton.setAttribute("aria-expanded", "true");
       document.body.classList.remove("nav-open");
       mobileNav.classList.remove("is-open");
       const navToggle = document.querySelector("[data-nav-toggle]");
       navToggle?.setAttribute("aria-expanded", "false");
       navToggle?.setAttribute("aria-label", "Open navigation");
+      input.focus();
+      results.innerHTML = '<p class="site-search__empty">Loading website search…</p>';
       loadIndex()
         .then(() => {
           renderResults();
-          input.focus();
         })
         .catch(() => {
           results.innerHTML = '<p class="site-search__empty">Search is temporarily unavailable. Please try again.</p>';
-          input.focus();
         });
     }
 
     function closeSearch() {
       dialog.hidden = true;
       document.body.classList.remove("search-open");
-      if (lastFocusedElement) lastFocusedElement.focus();
+      desktopButton.setAttribute("aria-expanded", "false");
+      mobileButton.setAttribute("aria-expanded", "false");
+      if (lastFocusedElement?.isConnected) lastFocusedElement.focus();
     }
 
     desktopButton.addEventListener("click", openSearch);
     mobileButton.addEventListener("click", openSearch);
     input.addEventListener("input", renderResults);
+    input.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowDown") return;
+      const firstResult = results.querySelector(".site-search__result");
+      if (firstResult) {
+        event.preventDefault();
+        firstResult.focus();
+      }
+    });
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (normalizeSearchText(input.value).length < 2) {
+        renderResults();
+        input.focus();
+        return;
+      }
+
+      loadIndex()
+        .then(() => {
+          const matches = renderResults();
+          if (matches.length) window.location.assign(matches[0].page.url);
+          else input.focus();
+        })
+        .catch(() => {
+          results.innerHTML = '<p class="site-search__empty">Search is temporarily unavailable. Please try again.</p>';
+          input.focus();
+        });
+    });
     dialog.querySelectorAll("[data-search-close]").forEach((button) => {
       button.addEventListener("click", closeSearch);
     });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !dialog.hidden) closeSearch();
-      if (event.key === "/" && dialog.hidden && !event.target.matches("input, textarea, select")) {
+      if (event.key === "Tab" && !dialog.hidden) {
+        const focusableElements = Array.from(
+          dialog.querySelectorAll('button, input, a[href], [tabindex]:not([tabindex="-1"])')
+        ).filter((element) => !element.disabled && element.offsetParent !== null);
+        const firstFocusable = focusableElements[0];
+        const lastFocusable = focusableElements[focusableElements.length - 1];
+        if (event.shiftKey && document.activeElement === firstFocusable) {
+          event.preventDefault();
+          lastFocusable?.focus();
+        } else if (!event.shiftKey && document.activeElement === lastFocusable) {
+          event.preventDefault();
+          firstFocusable?.focus();
+        }
+      }
+      const targetIsEditable = event.target instanceof Element
+        && event.target.closest("input, textarea, select, [contenteditable]");
+      if (event.key === "/" && dialog.hidden && !targetIsEditable) {
         event.preventDefault();
         openSearch();
       }
