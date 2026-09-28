@@ -455,7 +455,7 @@
     wrapper.className = "country-search";
     input.className = "country-search__input";
     input.type = "text";
-    input.placeholder = "Type or select country";
+    input.placeholder = "Select your country";
     input.autocomplete = "off";
     input.spellcheck = false;
     input.required = select.required;
@@ -886,7 +886,7 @@
       const code = document.createElement("span");
       code.className = "phone-code";
       code.setAttribute("data-phone-code", "");
-      code.textContent = "+";
+      code.hidden = true;
       phoneInput.parentNode.insertBefore(wrapper, phoneInput);
       wrapper.appendChild(code);
       wrapper.appendChild(phoneInput);
@@ -934,8 +934,13 @@
     const code = callingCodeFor(country);
     const codeLabel = form.querySelector("[data-phone-code]");
     const hiddenCode = form.querySelector("input[name='phoneCode']");
+    const phoneWrapper = codeLabel?.closest(".phone-composite");
 
-    if (codeLabel) codeLabel.textContent = code || "+";
+    if (codeLabel) {
+      codeLabel.textContent = code;
+      codeLabel.hidden = !code;
+    }
+    phoneWrapper?.classList.toggle("has-phone-code", Boolean(code));
     if (hiddenCode) hiddenCode.value = code;
   }
 
