@@ -5,5 +5,8 @@
   "description": "Static MedTreat India website",
   "scripts": {
     "build": "node scripts/build-static-site.js"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
   }
 }
